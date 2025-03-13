@@ -6,7 +6,7 @@ from nornir import InitNornir
 from nornir.core.task import MultiResult, Result, Task
 from nornir_utils.plugins.functions import print_result
 
-nr = InitNornir()
+nr = InitNornir(config_file="nornir.yaml")
 
 
 def sync_cfg_from_device(task: Task, dry_run: bool = False) -> Result:
