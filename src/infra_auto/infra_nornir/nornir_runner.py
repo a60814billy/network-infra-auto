@@ -4,7 +4,8 @@ from typing import Optional
 from nornir import InitNornir
 from nornir.core.filter import F
 
-from .tasks import napalm_sync_config_from_devices, napalm_apply_config_to_devices
+from .tasks import napalm_apply_config_to_devices, napalm_sync_config_from_devices
+
 
 class NornirRunner:
     def __init__(self, nornir: InitNornir = None):
@@ -15,7 +16,7 @@ class NornirRunner:
 
     def _device_list_exists(self):
         return os.path.exists(".change_device_list")
-    
+
     def _read_device_list(self, device_list_file: str):
         with open(device_list_file, "r") as f:
             device_list = f.read().strip().split("\n")
@@ -32,13 +33,13 @@ class NornirRunner:
 
         if not os.path.exists(device_list_file):
             raise ValueError(f"Device list file {device_list_file} does not exist")
-        
+
         device_list = self._read_device_list(device_list_file)
         print(f"Filtering to only sync from devices: {', '.join(device_list)}")
         filtered_nr = self.nornir.filter(F(name__in=device_list))
 
         return NornirRunner(nornir=filtered_nr)
-    
+
     def print_affect_hosts(self):
         """
         Print all affected hosts

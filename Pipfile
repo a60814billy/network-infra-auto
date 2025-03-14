@@ -13,6 +13,8 @@ nornir-napalm = "*"
 requests = "*"
 
 [dev-packages]
+black = "*"
+isort = "*"
 
 [requires]
 python_version = "3.12"

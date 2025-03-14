@@ -1,14 +1,17 @@
 from typing import Optional
 
-from nornir.core.task import Task, Result
+from nornir.core.task import Result, Task
 from nornir_napalm.plugins.connections import CONNECTION_NAME
 
-def napalm_apply_config_to_devices(task: Task, dry_run: Optional[bool] = False) -> Result:
+
+def napalm_apply_config_to_devices(
+    task: Task, dry_run: Optional[bool] = False
+) -> Result:
     diff = ""
     changed = False
     result = ""
 
-    local_cfg_path = f'cfg/{task.host.name}.cfg'
+    local_cfg_path = f"cfg/{task.host.name}.cfg"
 
     conn = task.host.get_connection(CONNECTION_NAME, task.nornir.config)
 

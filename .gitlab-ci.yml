@@ -1,4 +1,5 @@
 stages:
+  - lint
   - dry-run
   - deploy
   - post-deploy
@@ -15,6 +16,18 @@ default:
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+code-format-check:
+  stage: lint
+  script:
+    - pip install black isort
+    - black --check --diff src/
+    - isort --check --diff src/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      when: always
 
 nornir-dry-run:
   stage: dry-run
