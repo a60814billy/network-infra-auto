@@ -1,5 +1,4 @@
 stages:
-  - detect-changes
   - dry-run
   - deploy
   - post-deploy
@@ -17,38 +16,25 @@ default:
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-detect-mr-devices:
-  stage: detect-changes
-  script:
-    - python3 detect_cfg_change_in_mr.py
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || ($CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)
-      when: always
-  artifacts:
-    paths:
-      - .change_device_list
-
 nornir-dry-run:
   stage: dry-run
   script:
+    - python3 utility/detect_cfg_change_in_mr.py
     - python3 nornir_sync_cfg_to_devices.py --dry-run | sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" | tee -a .dry_run_output
   after_script:
-    - python3 report_changes.py
+    - python3 utility/report_changes.py
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
   
-
 nornir-apply:
   stage: deploy
   script:
+    - python3 utility/detect_cfg_change_in_mr.py
     - python3 nornir_sync_cfg_to_devices.py
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
       when: always
-  needs:
-    - job: detect-mr-devices
-      artifacts: true
 
 sync-configs-from-devices:
   stage: post-deploy
