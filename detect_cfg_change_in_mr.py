@@ -39,6 +39,8 @@ def get_merged_mr_changes():
     print(diff_files)
 
 if merge_request_iid:
+    print('Getting MR changes')
     get_mr_change_files()
 else:
+    print('Getting merged MR changes')
     get_merged_mr_changes()
