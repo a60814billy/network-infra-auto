@@ -2,6 +2,8 @@ stages:
   - lint
   - dry-run
   - deploy
+  - manual-check
+  - trigger-post-deploy
   - post-deploy
 
 default:
@@ -47,8 +49,7 @@ nornir-dry-run:
     paths:
       - nornir.log
     expire_in: "1 day"
-    
-  
+
 nornir-apply:
   stage: deploy
   script:
@@ -57,6 +58,24 @@ nornir-apply:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
       when: always
+  artifacts:
+    paths:
+      - .change_device_list
+
+manual-check-config-changes:
+  stage: manual-check
+  tags:
+    - shell
+  script:
+    - echo "manual check"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      when: manual
+
+trigger-post-deploy:
+  stage: trigger-post-deploy
+  script:
+    - infra-auto ci trigger-sync-from-pipeline --device-list-file .change_device_list
 
 sync-configs-from-devices:
   stage: post-deploy
