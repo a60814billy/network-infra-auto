@@ -21,8 +21,11 @@ detect-mr-devices:
   script:
     - python3 detect_cfg_change_in_mr.py
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || ($CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)
       when: always
+  artifacts:
+    paths:
+      - .change_device_list
 
 nornir-dry-run:
   stage: dry-run
