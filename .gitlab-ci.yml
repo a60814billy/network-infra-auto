@@ -22,6 +22,7 @@ nornir-dry-run:
     - infra-auto ci detect-changes > .change_device_list
     - cat .change_device_list
     - infra-auto nornir apply --device-list-file .change_device_list --dry-run
+    - sleep 10000000
     # Remove terminal color codes from the output
     - sed -i -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" .dry_run_output
   after_script:
