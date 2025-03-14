@@ -1,6 +1,10 @@
 import os
+from typing import Optional
+
 from nornir import InitNornir
 from nornir.core.filter import F
+
+from .tasks import napalm_sync_config_from_devices, napalm_apply_config_to_devices
 
 class NornirRunner:
     def __init__(self, nornir: InitNornir = None):
@@ -41,8 +45,8 @@ class NornirRunner:
         for host in self.nornir.inventory.hosts.values():
             print(host.name)
 
-    def sync_from(self):
-        pass
+    def sync_from(self, dry_run: Optional[bool] = False):
+        return self.nornir.run(task=napalm_sync_config_from_devices, dry_run=dry_run)
 
-    def sync_to(self, dry_run: bool = False):
-        pass
+    def apply_to(self, dry_run: bool = False):
+        return self.nornir.run(task=napalm_apply_config_to_devices, dry_run=dry_run)

@@ -5,19 +5,21 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import argparse
 
+from nornir_utils.plugins.functions import print_result
+
 from infra_auto.infra_nornir import NornirRunner
 
 def nornir_sync_from_devices(args: argparse.Namespace) -> None:
     print('Syncing data from remote to local...')
     nr = NornirRunner().filter_hosts()
     nr.print_affect_hosts()
-    nr.sync_from()
+    print_result(nr.sync_from(dry_run=args.dry_run))
 
 def nornir_apply_to_devices(args: argparse.Namespace) -> None:
     print('Syncing data from local to remote...')
     nr = NornirRunner().filter_hosts()
     nr.print_affect_hosts()
-    nr.sync_to(dry_run=args.dry_run)
+    print_result(nr.apply_to(dry_run=args.dry_run))
 
 def ci_detect_changes(args: argparse.Namespace) -> None:
     print('Detecting changes in the repository...')
@@ -42,6 +44,7 @@ def main() -> None:
     # Nornir: sync-from command
     sync_from_parser = nornir_subparsers.add_parser('sync-from', help='Sync cfg from devices to git local')
     sync_from_parser.set_defaults(func=nornir_sync_from_devices)
+    sync_from_parser.add_argument('--dry-run', action='store_true', help='Perform a dry run without making changes')
 
     # Nornir: sync-to command
     apply_to_parser = nornir_subparsers.add_parser('apply', help='Apply and replace cfg from git local to devices')
