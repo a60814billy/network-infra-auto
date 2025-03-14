@@ -28,6 +28,11 @@ nornir-dry-run:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
+  variables:
+    NORNIR_LOGGING_LEVEL: "DEBUG"
+  artifacts:
+    paths:
+      - nornir.log
   
 nornir-apply:
   stage: deploy
