@@ -35,12 +35,10 @@ def ci_detect_changes(args: argparse.Namespace) -> None:
 
 def ci_report_diff_to_mr_comment(args: argparse.Namespace) -> None:
     report_changes_to_mr_comment(args.report_file)
-    pass
 
 
 def ci_trigger_sync_from_pipeline(args: argparse.Namespace) -> None:
     trigger_post_deploy_pipeline(args.device_list_file)
-    pass
 
 
 def main() -> None:
