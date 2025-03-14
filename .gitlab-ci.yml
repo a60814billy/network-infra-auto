@@ -1,4 +1,5 @@
 stages:
+  - detect-changes
   - dry-run
   - deploy
 
@@ -15,6 +16,12 @@ default:
 variables:  # Change pip's cache directory to be inside the project directory because we can only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
+detect-mr-devices:
+  stage: detect-changes
+  image: python:3.12.4
+  script:
+    - python3 detect_cfg_change_in_mr.py
+
 nornir-dry-run:
   stage: dry-run
   image: python:3.12.4
@@ -27,6 +34,7 @@ nornir-dry-run:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
+  
 
 nornir-apply:
   stage: deploy
