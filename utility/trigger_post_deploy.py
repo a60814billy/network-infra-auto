@@ -1,58 +1,29 @@
 import os
-import requests
-import time
 
-# GitLab API configuration
-gitlab_api_url = "http://10.192.4.172/api/v4"
-project_id = os.environ["CI_PROJECT_ID"]
-api_token = os.environ["GITLAB_API_TOKEN"]
-default_branch = os.environ["CI_DEFAULT_BRANCH"]
+from gitlab_api import GitLabCiApiClient
 
-# Read the change device list file if it exists
-device_list_content = ""
-if os.path.exists(".change_device_list"):
-    with open(".change_device_list", "r") as f:
-        device_list_content = f.read()
-    print(f"Found .change_device_list with content: {device_list_content}")
-else:
-    print("Warning: .change_device_list file not found")
+CHANGED_DEVICE_LIST_FILE = ".change_device_list"
 
-# Wait for a short time to ensure the current pipeline completes
-print("Waiting for current pipeline to complete...")
-time.sleep(3)
+def main():
+    gitlab_client = GitLabCiApiClient()
+    default_branch = os.environ.get("CI_DEFAULT_BRANCH", None)
 
-# Prepare variables for the new pipeline
-variables = [
-    {
-        "key": "CI_PIPELINE_SOURCE",
-        "value": "api"
-    }
-]
+    # Read the change device list file if it exists
+    device_list_content = ""
+    if os.path.exists(CHANGED_DEVICE_LIST_FILE):
+        with open(CHANGED_DEVICE_LIST_FILE, "r") as f:
+            device_list_content = f.read()
+        print(f"Found .change_device_list with content: {device_list_content}")
+    else:
+        print("Warning: .change_device_list file not found")
 
-# Add device list content as a variable if available
-if device_list_content:
-    variables.append({
+    print(f"Triggering post-deploy pipeline on branch {default_branch}...")
+    pipeline = gitlab_client.trigger_pipeline(default_branch, [{
         "key": "CHANGE_DEVICE_LIST",
         "value": device_list_content
-    })
-
-# Trigger a new pipeline via GitLab API
-print(f"Triggering post-deploy pipeline on branch {default_branch}...")
-response = requests.post(
-    f'{gitlab_api_url}/projects/{project_id}/pipeline',
-    headers={'PRIVATE-TOKEN': api_token},
-    json={
-        "ref": default_branch,
-        "variables": variables
-    }
-)
-
-# Check response
-if response.status_code >= 200 and response.status_code < 300:
-    pipeline_data = response.json()
-    pipeline_id = pipeline_data.get('id')
+    }])
+    pipeline_id = pipeline.get('id')
     print(f"Successfully triggered post-deploy pipeline with ID: {pipeline_id}")
-    print(f"Pipeline URL: {gitlab_api_url}/projects/{project_id}/pipelines/{pipeline_id}")
-else:
-    print(f"Failed to trigger post-deploy pipeline. Status code: {response.status_code}")
-    print(f"Response: {response.text}")
+
+if __name__ == "__main__":
+    main()

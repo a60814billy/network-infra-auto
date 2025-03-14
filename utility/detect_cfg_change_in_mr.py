@@ -1,29 +1,16 @@
 import os
 import re
 
-import requests
+from gitlab_api import GitLabCiApiClient
 
-gitlab_api_url = "http://10.192.4.172/api/v4"
-
-project_id = os.environ["CI_PROJECT_ID"]
 merge_request_iid = os.environ.get("CI_MERGE_REQUEST_IID", None)
-api_token = os.environ["GITLAB_API_TOKEN"]
+
+gitlab_client = GitLabCiApiClient()
 
 device_parse_re = re.compile(r'^cfg/(.*)\.cfg$')
 
-
 def get_mr_change_files():
-    resp = requests.get(
-        f'{gitlab_api_url}/projects/{project_id}/merge_requests/{merge_request_iid}/changes',
-        headers={'PRIVATE-TOKEN': api_token}
-    )
-
-    if resp.status_code != 200:
-        raise Exception(f'Failed to get changes: {resp.text}')
-
-    changes = resp.json()
-    changeset = changes['changes']
-
+    changeset = gitlab_client.get_mr_change_files()['changes']
     device_list = []
 
     for change in changeset:
@@ -53,9 +40,11 @@ def main():
         print('Getting MR changes')
         device_list = get_mr_change_files()
     else:
-        print('Getting merged MR changes')
+        print('Getting changes from merged MR (git diff)')
         device_list = get_merged_mr_changes()
 
+    print('Device list:', device_list)
+    
     with open('.change_device_list', 'w') as f:
         for device in device_list:
             f.write(f'{device}\n')
