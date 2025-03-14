@@ -1,7 +1,7 @@
 import os
 import re
 
-from gitlab_api import GitLabCiApiClient
+from ..gitlab_api import GitLabCiApiClient
 
 merge_request_iid = os.environ.get("CI_MERGE_REQUEST_IID", None)
 
@@ -35,20 +35,11 @@ def get_merged_mr_changes():
     return device_list
 
 
-def main():
+def detect_cfg_changes() -> None:
     if merge_request_iid:
-        print('Getting MR changes')
         device_list = get_mr_change_files()
     else:
-        print('Getting changes from merged MR (git diff)')
         device_list = get_merged_mr_changes()
 
-    print('Device list:', device_list)
-    
-    with open('.change_device_list', 'w') as f:
-        for device in device_list:
-            f.write(f'{device}\n')
-
-
-if __name__ == '__main__':
-    main()
+    for device in device_list:
+        print(device)
