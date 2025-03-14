@@ -48,8 +48,23 @@ sync-configs-from-devices:
       else
         echo "No device list received from parent pipeline"
       fi
-    - python3 nornir_sync_cfg_from_devices.py
-    - git diff cfg/
+    - infra-auto nornir sync-from --device-list-file .change_device_list
+    - git config --global user.email "gitlab-ci@example.com"
+    - git config --global user.name "GitLab CI"
+    - git add cfg/
+    - |
+      if git diff --cached --quiet; then
+        echo "No changes to commit"
+      else
+        # Use GITLAB_PUSH_TOKEN (should be set as a protected CI/CD variable with write_repository scope)
+        git commit -m "Update device configurations [skip ci]"
+        
+        # Try different push methods in order of preference
+        if [ -n "$GITLAB_API_TOKEN" ]; then
+          echo "Using GITLAB_API_TOKEN for authentication"
+          git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
+        fi
+      fi
   rules:
     - if: $CI_PIPELINE_SOURCE == "api" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always

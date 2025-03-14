@@ -11,6 +11,7 @@ from infra_auto.infra_nornir import NornirRunner
 
 from infra_auto.ci_utils.tasks.detect_cfg_changes import detect_cfg_changes
 from infra_auto.ci_utils.tasks.report_changes import report_changes_to_mr_comment
+from infra_auto.ci_utils.tasks.trigger_post_deploy_pipeline import trigger_post_deploy_pipeline
 
 def nornir_sync_from_devices(args: argparse.Namespace) -> None:
     print('Syncing data from remote to local...')
@@ -32,7 +33,7 @@ def ci_report_diff_to_mr_comment(args: argparse.Namespace) -> None:
     pass
 
 def ci_trigger_sync_from_pipeline(args: argparse.Namespace) -> None:
-    print('Triggering CI operations...')
+    trigger_post_deploy_pipeline(args.device_list_file)
     pass
 
 def main() -> None:
@@ -71,6 +72,7 @@ def main() -> None:
     # CI: trigger sync command
     ci_trigger_parser = ci_subparsers.add_parser('trigger-sync-from-pipeline', help='Trigger CI operations')
     ci_trigger_parser.set_defaults(func=ci_trigger_sync_from_pipeline)
+    ci_trigger_parser.add_argument('--device-list-file', type=str, help='Path to the device list file')
 
     args = parser.parse_args()
 
