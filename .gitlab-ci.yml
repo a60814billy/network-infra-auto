@@ -11,7 +11,7 @@ default:
     paths:
       - .cache/pip
   before_script:
-    - pip install -e .
+    - pip install --force-reinstall -e .
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
