@@ -2,6 +2,7 @@ stages:
   - detect-changes
   - dry-run
   - deploy
+  - post-deploy
 
 default:
   image: python:3.12.4
@@ -42,6 +43,21 @@ nornir-apply:
   stage: deploy
   script:
     - python3 nornir_sync_cfg_to_devices.py
+  after_script:
+    - python3 trigger_post_deploy.py
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
       when: always
+
+sync-configs-from-devices:
+  stage: post-deploy
+  script:
+    - python3 nornir_sync_cfg_from_devices.py
+    - git config --global user.email "gitlab-ci@example.com"
+    - git config --global user.name "GitLab CI"
+    - git add cfg/
+    - git diff --cached --quiet || (git commit -m "Update device configurations [skip ci]" && git push https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main)
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "api" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+  allow_failure: false
