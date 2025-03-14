@@ -7,9 +7,9 @@ import argparse
 
 from nornir_utils.plugins.functions import print_result
 
-from infra_auto.ci_utils.tasks.detect_cfg_changes import detect_cfg_changes
-from infra_auto.ci_utils.tasks.report_changes import report_changes_to_mr_comment
-from infra_auto.ci_utils.tasks.trigger_post_deploy_pipeline import (
+from infra_auto.ci_utils.tasks import (
+    detect_cfg_changes,
+    report_changes_to_mr_comment,
     trigger_post_deploy_pipeline,
 )
 from infra_auto.infra_nornir import NornirRunner
