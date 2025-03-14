@@ -1,0 +1,56 @@
+stages:
+  - test
+  - approve
+  - deploy
+
+nornir-dry-run:
+  stage: test
+  image: python:3.12.4
+  script:
+    - pip install pipenv
+    - pipenv install --dev
+    - OUTPUT=$(pipenv run python nornir_sync_cfg_to_devices.py --dry-run)
+    - echo "$OUTPUT"
+    - |
+      echo "Posting results to merge request..."
+      curl -X POST --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" --header "Content-Type: application/json" \
+        --data "{\"body\": \"### Nornir Dry Run Results\n\n\`\`\`\n$OUTPUT\n\`\`\`\"}" \
+        http://10.192.4.172/api/v4/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes
+  tags:
+    - docker
+  variables:
+    PIPENV_VENV_IN_PROJECT: 1
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+
+manual-approval:
+  stage: approve
+  image: alpine:latest
+  script:
+    - echo "Deployment manually approved!"
+  tags:
+    - docker
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      when: manual
+  allow_failure: false
+
+nornir-apply:
+  stage: deploy
+  image: python:3.12.4
+  script:
+    - pip install pipenv
+    - pipenv install --dev
+    - echo "Applying configuration changes..."
+    - pipenv run python nornir_sync_cfg_to_devices.py
+    - echo "Configuration changes applied successfully!"
+  tags:
+    - docker
+  variables:
+    PIPENV_VENV_IN_PROJECT: 1
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      when: on_success
+  needs:
+    - manual-approval
