@@ -8,13 +8,13 @@ default:
   image: python:3.12.4
   tags:
     - docker
-  cache:                      # Pip's cache doesn't store the python packages
-    paths:                    # https://pip.pypa.io/en/stable/topics/caching/
+  cache:
+    paths:
       - .cache/pip
   before_script:
     - pip install -r requirements.txt
 
-variables:  # Change pip's cache directory to be inside the project directory because we can only cache local items.
+variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 detect-mr-devices:
