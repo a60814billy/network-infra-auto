@@ -12,7 +12,7 @@ class GitLabClient:
     def get_mr_change_files(self, project_id: str, merge_request_iid: str):
         resp = self.session.get(f'{self.api_endpoint}/projects/{project_id}/merge_requests/{merge_request_iid}/changes')
 
-        if resp.status_code != 200:
+        if resp.status_code > 299 or resp.status_code < 200:
             raise Exception(f'Failed to get changes: {resp.text}')
 
         return resp.json()
@@ -20,7 +20,7 @@ class GitLabClient:
     def post_mr_note(self, project_id: str, merge_request_iid: str, body: str):
         resp = self.session.post(f'{self.api_endpoint}/projects/{project_id}/merge_requests/{merge_request_iid}/notes?body={urllib.parse.quote(body)}')
 
-        if resp.status_code != 200:
+        if resp.status_code > 299 or resp.status_code < 200:
             raise Exception(f'Failed to post note: {resp.text}')
         
         return resp.json()
