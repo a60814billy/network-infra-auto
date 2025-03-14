@@ -1,12 +1,30 @@
 import difflib
 import argparse
+import os
 
 import napalm
 from nornir import InitNornir
 from nornir.core.task import MultiResult, Result, Task
+from nornir.core.filter import F
 from nornir_utils.plugins.functions import print_result
 
 nr = InitNornir(config_file="nornir.yaml")
+
+# Filter hosts based on .change_device_list if it exists
+def filter_hosts():
+    if os.path.exists(".change_device_list"):
+        with open(".change_device_list", "r") as f:
+            device_list = f.read().strip().split("\n")
+        
+        # Filter out empty lines
+        device_list = [device for device in device_list if device]
+        
+        if device_list:
+            print(f"Filtering to only sync from devices: {', '.join(device_list)}")
+            return nr.filter(F(name__in=device_list))
+    
+    print("No device filter applied, syncing from all devices")
+    return nr
 
 
 def sync_cfg_from_device(task: Task, dry_run: bool = False) -> Result:
@@ -59,7 +77,11 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Print diff only")
     args = parser.parse_args()
     dry_run = args.dry_run
-    result = nr.run(task=sync_cfg_from_device, dry_run=dry_run)
+    
+    # Get filtered inventory based on .change_device_list
+    filtered_nr = filter_hosts()
+    
+    result = filtered_nr.run(task=sync_cfg_from_device, dry_run=dry_run)
     print_result(result)
 
 if __name__ == '__main__':

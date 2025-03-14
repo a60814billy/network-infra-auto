@@ -48,10 +48,20 @@ nornir-apply:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
       when: always
+  needs:
+    - job: detect-mr-devices
+      artifacts: true
 
 sync-configs-from-devices:
   stage: post-deploy
   script:
+    - |
+      if [ -n "$CHANGE_DEVICE_LIST" ]; then
+        echo "$CHANGE_DEVICE_LIST" > .change_device_list
+        echo "Received device list from parent pipeline: $CHANGE_DEVICE_LIST"
+      else
+        echo "No device list received from parent pipeline"
+      fi
     - python3 nornir_sync_cfg_from_devices.py
     - git config --global user.email "gitlab-ci@example.com"
     - git config --global user.name "GitLab CI"
