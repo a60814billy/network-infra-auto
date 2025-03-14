@@ -47,7 +47,7 @@ def main():
 
     if not os.path.exists('.change_device_list'):
         print('No device change list found')
-        change_device_set = nr
+        change_device_set = nr.filter(name='empty-set')
     else:
         with open('.change_device_list', 'r') as f:
             device_list = f.read().splitlines()
