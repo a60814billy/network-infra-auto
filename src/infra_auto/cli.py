@@ -11,13 +11,13 @@ from infra_auto.infra_nornir import NornirRunner
 
 def nornir_sync_from_devices(args: argparse.Namespace) -> None:
     print('Syncing data from remote to local...')
-    nr = NornirRunner().filter_hosts()
+    nr = NornirRunner().filter_hosts(args.device_list_file)
     nr.print_affect_hosts()
     print_result(nr.sync_from(dry_run=args.dry_run))
 
 def nornir_apply_to_devices(args: argparse.Namespace) -> None:
     print('Syncing data from local to remote...')
-    nr = NornirRunner().filter_hosts()
+    nr = NornirRunner().filter_hosts(args.device_list_file)
     nr.print_affect_hosts()
     print_result(nr.apply_to(dry_run=args.dry_run))
 
@@ -45,11 +45,13 @@ def main() -> None:
     sync_from_parser = nornir_subparsers.add_parser('sync-from', help='Sync cfg from devices to git local')
     sync_from_parser.set_defaults(func=nornir_sync_from_devices)
     sync_from_parser.add_argument('--dry-run', action='store_true', help='Perform a dry run without making changes')
+    sync_from_parser.add_argument('--device-list-file', type=str, help='Path to the device list file')
 
     # Nornir: sync-to command
     apply_to_parser = nornir_subparsers.add_parser('apply', help='Apply and replace cfg from git local to devices')
     apply_to_parser.set_defaults(func=nornir_apply_to_devices)
     apply_to_parser.add_argument('--dry-run', action='store_true', help='Perform a dry run without making changes')
+    apply_to_parser.add_argument('--device-list-file', type=str, help='Path to the device list file')
     
     # CI Subparser
     ci_parser = subparsers.add_parser('ci', help='Commands related to CI operations (only for GitLab CI use, not for manual use)')
