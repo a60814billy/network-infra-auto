@@ -10,6 +10,7 @@ netmiko = "*"
 jinja2 = "*"
 nornir-utils = "*"
 nornir-napalm = "*"
+requests = "*"
 
 [dev-packages]
 
