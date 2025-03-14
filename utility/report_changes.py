@@ -1,4 +1,4 @@
-from gitlab_api import GitLabCiApiClient
+from infra_auto.ci_utils.gitlab_api import GitLabCiApiClient
 
 def main():
     gitlab_client = GitLabCiApiClient()

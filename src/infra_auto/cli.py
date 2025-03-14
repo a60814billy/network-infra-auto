@@ -9,6 +9,8 @@ from nornir_utils.plugins.functions import print_result
 
 from infra_auto.infra_nornir import NornirRunner
 
+from infra_auto.ci_utils.tasks.detect_cfg_changes import detect_cfg_changes
+
 def nornir_sync_from_devices(args: argparse.Namespace) -> None:
     print('Syncing data from remote to local...')
     nr = NornirRunner().filter_hosts(args.device_list_file)
@@ -22,8 +24,7 @@ def nornir_apply_to_devices(args: argparse.Namespace) -> None:
     print_result(nr.apply_to(dry_run=args.dry_run))
 
 def ci_detect_changes(args: argparse.Namespace) -> None:
-    print('Detecting changes in the repository...')
-    pass
+    detect_cfg_changes()
 
 def ci_report_diff_to_mr_comment(args: argparse.Namespace) -> None:
     print('Generating a CI report...')

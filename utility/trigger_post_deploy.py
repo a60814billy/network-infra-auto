@@ -1,6 +1,6 @@
 import os
 
-from gitlab_api import GitLabCiApiClient
+from infra_auto.ci_utils.gitlab_api import GitLabCiApiClient
 
 CHANGED_DEVICE_LIST_FILE = ".change_device_list"
 
