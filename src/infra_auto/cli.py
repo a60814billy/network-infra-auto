@@ -10,6 +10,7 @@ from nornir_utils.plugins.functions import print_result
 from infra_auto.infra_nornir import NornirRunner
 
 from infra_auto.ci_utils.tasks.detect_cfg_changes import detect_cfg_changes
+from infra_auto.ci_utils.tasks.report_changes import report_changes_to_mr_comment
 
 def nornir_sync_from_devices(args: argparse.Namespace) -> None:
     print('Syncing data from remote to local...')
@@ -27,7 +28,7 @@ def ci_detect_changes(args: argparse.Namespace) -> None:
     detect_cfg_changes()
 
 def ci_report_diff_to_mr_comment(args: argparse.Namespace) -> None:
-    print('Generating a CI report...')
+    report_changes_to_mr_comment(args.report_file)
     pass
 
 def ci_trigger_sync_from_pipeline(args: argparse.Namespace) -> None:
@@ -65,6 +66,7 @@ def main() -> None:
     # CI: report command
     ci_report_to_mr_comment_parser = ci_subparsers.add_parser('report-diff-to-mr', help='Generate a CI report')
     ci_report_to_mr_comment_parser.set_defaults(func=ci_report_diff_to_mr_comment)
+    ci_report_to_mr_comment_parser.add_argument('--report-file', type=str, help='Path to the report file')
 
     # CI: trigger sync command
     ci_trigger_parser = ci_subparsers.add_parser('trigger-sync-from-pipeline', help='Trigger CI operations')
