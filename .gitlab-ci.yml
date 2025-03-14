@@ -18,19 +18,15 @@ variables:  # Change pip's cache directory to be inside the project directory be
 
 detect-mr-devices:
   stage: detect-changes
-  image: python:3.12.4
   script:
     - python3 detect_cfg_change_in_mr.py
 
 nornir-dry-run:
   stage: dry-run
-  image: python:3.12.4
   script:
     - python3 nornir_sync_cfg_to_devices.py --dry-run | tee -a .dry_run_output
   after_script:
     - python3 report_changes.py
-  tags:
-    - docker
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
@@ -38,11 +34,8 @@ nornir-dry-run:
 
 nornir-apply:
   stage: deploy
-  image: python:3.12.4
   script:
     - python3 nornir_sync_cfg_to_devices.py
-  tags:
-    - docker
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
       when: always
