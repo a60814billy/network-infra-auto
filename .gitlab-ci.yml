@@ -76,6 +76,8 @@ trigger-post-deploy:
   stage: trigger-post-deploy
   script:
     - infra-auto ci trigger-sync-from-pipeline --device-list-file .change_device_list
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
 
 sync-configs-from-devices:
   stage: post-deploy
