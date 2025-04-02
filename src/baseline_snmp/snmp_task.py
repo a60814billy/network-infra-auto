@@ -35,6 +35,32 @@ def filter_hosts(host):
     return "baseline_snmp" in host.keys()
 
 
+def generate_snmp_config(platform: str, snmp_vars: dict) -> list[str]:
+    if platform not in template_path:
+        raise ValueError(f"Unsupported platform: {platform}")
+
+    template_file = template_path[platform]
+    template_full_path = os.path.join(template_dir_path, template_file)
+
+    try:
+        with open(template_full_path, "r") as f:
+            template_content = f.read()
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Template file not found: {template_full_path}")
+
+    snmp_config_template = Template(template_content)
+
+    # Render the configuration using Jinja2
+    rendered_config = snmp_config_template.render(**snmp_vars).splitlines()
+
+    # Filter out comments and empty lines
+    commend_regex = re.compile(r"(^\s*!.*)|(^\s*$)")
+    filtered_config = [
+        line for line in rendered_config if not commend_regex.match(line)
+    ]
+    return filtered_config
+
+
 def task(task: Task, dry_run: Optional[bool] = False) -> Result:
     snmp_vars = get_snmp_vars_from_host(task.host)
 
@@ -46,27 +72,15 @@ def task(task: Task, dry_run: Optional[bool] = False) -> Result:
             changed=False,
         )
 
-    # Get the template path based on the platform
     platform = task.host.platform
-    if platform not in template_path:
+    try:
+        filtered_config = generate_snmp_config(platform, snmp_vars)
+    except (ValueError, FileNotFoundError) as e:
         return Result(
             host=task.host,
-            result=f"Unsupported platform: {platform}",
+            result=f"Failed to generate config: {e}",
             changed=False,
         )
-    template_file = template_path[platform]
-    snmp_config_template = Template(
-        open(os.path.join(template_dir_path, template_file)).read()
-    )
-
-    # Render the configuration using Jinja2
-    rendered_config = snmp_config_template.render(**snmp_vars).splitlines()
-    # Filter out comments and empty lines
-    # filtered comment, use regex to determine if line start with !
-    commend_regex = re.compile(r"(^\s*!.*)|(^\s*$)")
-    filtered_config = [
-        line for line in rendered_config if not commend_regex.match(line)
-    ]
 
     if task.is_dry_run(dry_run):
         return Result(
