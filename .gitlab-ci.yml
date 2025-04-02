@@ -1,8 +1,14 @@
+# stages:
+#   - lint
+#   - dry-run
+#   - deploy
+#   - manual-check
+#   - trigger-post-deploy
+#   - post-deploy
+
 stages:
-  - lint
-  - dry-run
-  - deploy
-  - manual-check
+  - netmiko-snmp-dry-run
+  - netmiko-snmp-deploy
   - trigger-post-deploy
   - post-deploy
 
@@ -29,6 +35,26 @@ code-format-check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      when: always
+
+netmiko-snmp-dry-run:
+  stage: netmiko-snmp-dry-run
+  script:
+    - infra-auto netmiko execute baseline_snmp --dry-run
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - src/baseline_snmp/*
+      when: always
+
+netmiko-snmp-deploy:
+  stage: netmiko-snmp-deploy
+  script:
+    - infra-auto netmiko execute baseline_snmp
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - src/baseline_snmp/*
       when: always
 
 nornir-dry-run:
@@ -75,7 +101,7 @@ manual-check-config-changes:
 trigger-post-deploy:
   stage: trigger-post-deploy
   script:
-    - infra-auto ci trigger-sync-from-pipeline --device-list-file .change_device_list
+    - infra-auto ci trigger-sync-from-pipeline
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
 
