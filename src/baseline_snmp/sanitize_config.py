@@ -1,7 +1,7 @@
 import re  # Added import
 
 
-def sanitize_config(lines):
+def sanitize_ios_config(lines):
     """
     Parses IOS XE configuration lines and removes specific sensitive information.
 
@@ -14,9 +14,11 @@ def sanitize_config(lines):
     sanitized_lines = []
     in_gi1_interface = False
     in_crypto_cert_block = False  # Flag for crypto pki cert/trustpoint/raw cert blocks
+    in_call_home_block = False  # Flag for call-home block
 
     # Define start patterns
     gi1_interface_start = "interface GigabitEthernet1"
+    call_home_start = "call-home"  # Added call-home start pattern
     crypto_cert_start_patterns = [
         "crypto pki certificate chain",
         "crypto pki trustpoint",
@@ -81,6 +83,16 @@ def sanitize_config(lines):
             i += 1
             continue
 
+        # Check for call-home block end
+        if in_call_home_block:
+            if stripped_line == "!":
+                in_call_home_block = False
+                i += 1  # Skip the '!' line
+                continue
+            else:
+                i += 1  # Skip line inside call-home block
+                continue
+
         # --- Start Markers & Single Line Removals ---
 
         # Check for Gi1 start
@@ -100,6 +112,12 @@ def sanitize_config(lines):
             i += 1  # Skip the start line
             continue
 
+        # Check for call-home start
+        if stripped_line.startswith(call_home_start):
+            in_call_home_block = True
+            i += 1  # Skip the start line
+            continue
+
         # Check for single lines to remove (using startswith on stripped line)
         if stripped_line.startswith(license_pattern):
             i += 1  # Skip license line
@@ -111,6 +129,11 @@ def sanitize_config(lines):
 
         if stripped_line.startswith(username_admin_pattern):
             i += 1  # Skip username admin line
+            continue
+
+        # Add check for the specific ip route line
+        if stripped_line.startswith("ip route vrf Mgmt-intf 0.0.0.0 0.0.0.0"):
+            i += 1  # Skip this specific route line
             continue
 
         # If none of the above matched, keep the original line (with its whitespace/ending)

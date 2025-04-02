@@ -5,3 +5,6 @@ n9k:
   platform: nxos_ssh
 xrv:
   platform: iosxr
+c8k-conftest: {}
+n9k-conftest: {}
+xrv-conftest: {}
