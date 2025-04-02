@@ -26,3 +26,9 @@ infra-auto = "infra_auto.cli:main"
 
 [tool.uv]
 package = true
+
+[dependency-groups]
+dev = ["pytest>=8.3.5"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
