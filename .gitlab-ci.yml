@@ -32,8 +32,6 @@ netmiko-snmp-dry-run:
     - infra-auto netmiko execute baseline_snmp --dry-run
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - src/baseline_snmp/*
       when: always
 
 netmiko-snmp-deploy:
@@ -42,8 +40,6 @@ netmiko-snmp-deploy:
     - infra-auto netmiko execute baseline_snmp
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
-      changes:
-        - src/baseline_snmp/*
       when: always
 
 trigger-post-deploy:
