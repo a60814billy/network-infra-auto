@@ -156,13 +156,24 @@ def sanitize_nxos_config(lines):
     sanitized_lines = []
     in_vrf_management = False
     in_interface_mgmt0 = False
+    in_class_map_block = False  # Flag for class-map blocks
+    in_policy_map_block = False  # Flag for policy-map blocks
+    in_vdc_block = False  # Flag for vdc blocks
+    in_role_block = False  # Flag for role blocks
+    in_copp_block = False  # Flag for copp blocks
 
     # Define start patterns
     vrf_management_start = "vrf context management"
     interface_mgmt0_start = "interface mgmt0"
+    class_map_start_pattern = "class-map type "  # Pattern for class-map start
+    policy_map_start_pattern = "policy-map type "  # Pattern for policy-map start
+    vdc_start_pattern = "vdc "  # Pattern for vdc start
+    role_start_pattern = "role name "  # Pattern for role start
+    copp_start_pattern = "copp profile "  # Pattern for copp start
 
     # Define single lines/prefixes to remove
     username_admin_pattern = "username admin "
+    boot_nxos_pattern = "boot nxos"  # Pattern for boot nxos lines
 
     i = 0
     while i < len(lines):
@@ -173,6 +184,18 @@ def sanitize_nxos_config(lines):
         leading_whitespace = len(original_line) > len(original_line.lstrip(" \t"))
 
         # --- Block Handling: Check for End Markers FIRST ---
+
+        if stripped_line.startswith("!"):
+            i += 1
+            continue
+
+        if re.compile(r"^\s*version\s.*").match(original_line):
+            i += 1
+            continue
+
+        if re.compile(r"^\s*hostname\s.*").match(original_line):
+            i += 1
+            continue
 
         if in_vrf_management:
             # NX-OS blocks typically end when indentation stops.
@@ -194,6 +217,51 @@ def sanitize_nxos_config(lines):
                 i += 1  # Skip line inside the block
                 continue
 
+        if in_class_map_block:
+            # NX-OS blocks typically end when indentation stops.
+            if not leading_whitespace or stripped_line == "!":
+                in_class_map_block = False
+                # Don't skip this line yet, let it be evaluated by the rules below
+            else:
+                i += 1  # Skip line inside the block
+                continue
+
+        if in_policy_map_block:
+            # NX-OS blocks typically end when indentation stops.
+            if not leading_whitespace or stripped_line == "!":
+                in_policy_map_block = False
+                # Don't skip this line yet, let it be evaluated by the rules below
+            else:
+                i += 1  # Skip line inside the block
+                continue
+
+        if in_vdc_block:
+            # NX-OS blocks typically end when indentation stops.
+            if not leading_whitespace or stripped_line == "!":
+                in_vdc_block = False
+                # Don't skip this line yet, let it be evaluated by the rules below
+            else:
+                i += 1  # Skip line inside the block
+                continue
+
+        if in_role_block:
+            # NX-OS blocks typically end when indentation stops.
+            if not leading_whitespace or stripped_line == "!":
+                in_role_block = False
+                # Don't skip this line yet, let it be evaluated by the rules below
+            else:
+                i += 1  # Skip line inside the block
+                continue
+
+        if in_copp_block:
+            # NX-OS blocks typically end when indentation stops.
+            if not leading_whitespace or stripped_line == "!":
+                in_copp_block = False
+                # Don't skip this line yet, let it be evaluated by the rules below
+            else:
+                i += 1  # Skip line inside the block
+                continue
+
         # --- Start Markers & Single Line Removals ---
 
         # Check for vrf context management start
@@ -208,6 +276,41 @@ def sanitize_nxos_config(lines):
             i += 1  # Skip the start line
             continue
 
+        # Check for class-map start
+        if stripped_line.startswith(class_map_start_pattern):
+            in_class_map_block = True
+            i += 1  # Skip the start line
+            continue
+
+        # Check for policy-map start
+        if stripped_line.startswith(policy_map_start_pattern):
+            in_policy_map_block = True
+            i += 1  # Skip the start line
+            continue
+
+        # Check for vdc start
+        if stripped_line.startswith(vdc_start_pattern):
+            in_vdc_block = True
+            i += 1  # Skip the start line
+            continue
+
+        # Check for role start
+        if stripped_line.startswith(role_start_pattern):
+            in_role_block = True
+            i += 1  # Skip the start line
+            continue
+
+        # Check for copp start
+        if stripped_line.startswith(copp_start_pattern):
+            in_copp_block = True
+            i += 1  # Skip the start line
+            continue
+
+        # Check for boot nxos line
+        if stripped_line.startswith(boot_nxos_pattern):
+            i += 1  # Skip boot nxos line
+            continue
+
         # Check for username admin line
         if stripped_line.startswith(username_admin_pattern):
             i += 1  # Skip username admin line
@@ -218,3 +321,15 @@ def sanitize_nxos_config(lines):
         i += 1
 
     return sanitized_lines
+
+
+if __name__ == "__main__":
+    with open("cfg/tndo-n9k-1.cfg", "r") as f:
+        lines = f.readlines()
+
+    results = sanitize_nxos_config(lines)
+
+    with open("cfg/tndo-n9k-1-sanitized.cfg", "w") as f:
+        for line in results:
+            f.write(line)
+    print("Sanitization complete. Check the output file.")

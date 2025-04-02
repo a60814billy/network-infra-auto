@@ -70,15 +70,22 @@ def generate_snmp_config(platform: str, snmp_vars: dict) -> list[str]:
 # --- Pre-config Check Helper Functions ---
 
 
+def ignore_config_diff_line(line: str) -> bool:
+    """
+    Ignore lines that start with !Time: or are empty
+    """
+    return line.startswith("!Time: ") or line.startswith("!Running configuration")
+
+
 def diff_cfg(old_cfg: str, new_cfg: str) -> str:
     """
     Compare two configurations and return the diff
     """
     old_cfg_line_by_line = [
-        line for line in old_cfg.splitlines() if not line.startswith("!Time: ")
+        line for line in old_cfg.splitlines() if not ignore_config_diff_line(line)
     ]
     new_cfg_line_by_line = [
-        line for line in new_cfg.splitlines() if not line.startswith("!Time: ")
+        line for line in old_cfg.splitlines() if not ignore_config_diff_line(line)
     ]
 
     diff = ""
@@ -100,6 +107,8 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
     target_cfg_file = "cfg/{}.cfg".format(target_host.name)
     with open(target_cfg_file, "r") as f:
         target_config_lines = f.readlines()
+        # remove \n from each line
+        target_config_lines = [line.rstrip("\n") for line in target_config_lines]
 
     # 1. generate sanitized config
     if platform == "ios":
@@ -127,6 +136,7 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
     test_con.commit_config()
     test_con.load_merge_candidate(config="\n".join(sanitize_config))
     test_con.commit_config()
+
     pre_execute_config = test_con.get_config()["running"]
 
     # 5. test run the confi
@@ -142,8 +152,6 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
             changed=False,
             failed=True,
         )
-
-    test_con.commit_config()
 
     afrer_execute_config = test_con.get_config()["running"]
 

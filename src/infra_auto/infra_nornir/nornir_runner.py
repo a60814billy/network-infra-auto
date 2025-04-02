@@ -26,7 +26,8 @@ class NornirRunner:
     def load_group_vars(self, module_name: str, group_vars_file: str):
         with open(group_vars_file, "r") as f:
             group_vars = yaml.safe_load(f)
-
+        if not isinstance(group_vars, dict):
+            return
         for group in group_vars:
             if group in self.nornir.inventory.groups:
                 if module_name not in self.nornir.inventory.groups[group].data:
@@ -41,7 +42,8 @@ class NornirRunner:
     def load_host_vars(self, module_name: str, host_vars_file: str):
         with open(host_vars_file, "r") as f:
             host_vars = yaml.safe_load(f)
-
+        if not isinstance(host_vars, dict):
+            return
         for host in host_vars:
             if host in self.nornir.inventory.hosts:
                 if module_name not in self.nornir.inventory.hosts[host].data:
