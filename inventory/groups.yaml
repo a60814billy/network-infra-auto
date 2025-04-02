@@ -1,6 +1,31 @@
 ---
 c8k:
   platform: ios
+  data:
+    baseline_snmp:
+      location: Hsinchu, Taiwan
+      contact: netadmin@example.com
+      v2c:
+        ro_community: public
+        rw_community: odo3Xohshi6i_private
+      v3:
+        enabled: true
+        user:
+          ro:
+            name: ro_user
+            auth_protocol: sha
+            auth_password: soo0noi4Vuej
+            priv_protocol: aes
+            priv_password: ieNee8Tei4ei
+          rw:
+            name: rw_user
+            auth_protocol: sha
+            auth_password: uu4Usaipaesh
+            priv_protocol: aes
+            priv_password: UM7OwaeCh5xo
+      snmp_access_list:
+        - 192.168.252.0/24
+        - 10.192.4.0/24
 n9k:
   platform: nxos_ssh
 xrv:

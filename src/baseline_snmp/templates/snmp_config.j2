@@ -1,0 +1,56 @@
+!
+! SNMP configuration
+!
+! clear any existing SNMP configuration
+!
+no snmp-server
+no ip access-list standard snmp_acl
+!
+! global settings
+!
+snmp-server location {{ location }}
+snmp-server contact {{ contact }}
+!
+! define ACL for SNMP access
+!
+!
+ip access-list standard snmp_acl
+{% for snmp_access_src in _snmp_acl_allow_networks %}
+permit {{ snmp_access_src["network"] }} {{ snmp_access_src["wildcard"] }}
+{% endfor %}
+!
+! snmp v2c
+!
+{% if v2c is defined %}
+{% if v2c.ro_community is defined %}
+snmp-server community {{ v2c.ro_community }} ro snmp_acl
+{% endif %}
+{% if v2c.rw_community is defined %}
+snmp-server community {{ v2c.rw_community }} rw snmp_acl
+{% endif %}
+{% endif %}
+!
+! snmp v3
+!
+! define views
+!
+{% if v3 is defined and v3.enabled == true %}
+snmp-server view snmp-v3-ro-view iso included
+snmp-server view snmp-v3-rw-view iso included
+!
+! define groups
+!
+snmp-server group snmp-v3-ro v3 priv read snmp-v3-ro-view access snmp_acl
+snmp-server group snmp-v3-rw v3 priv write snmp-v3-rw-view access snmp_acl
+!
+! define users
+!
+{% if v3.user.ro is defined %}
+{% set ro_user = v3.user.ro %}
+snmp-server user {{ro_user.name}} snmp-v3-ro v3 auth {{ro_user.auth_protocol}} {{ro_user.auth_password}} priv {{ro_user.priv_protocol}} 128 {{ro_user.priv_password}}
+{% endif %}
+{% if v3.user.rw is defined %}
+{% set rw_user = v3.user.rw %}
+snmp-server user {{rw_user.name}} snmp-v3-rw v3 auth {{rw_user.auth_protocol}} {{rw_user.auth_password}} priv {{rw_user.priv_protocol}} 128 {{rw_user.priv_password}}
+{% endif %}
+{% endif %}

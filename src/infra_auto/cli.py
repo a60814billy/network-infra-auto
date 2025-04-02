@@ -1,5 +1,6 @@
 import os
 import sys
+import importlib
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -39,6 +40,23 @@ def ci_report_diff_to_mr_comment(args: argparse.Namespace) -> None:
 
 def ci_trigger_sync_from_pipeline(args: argparse.Namespace) -> None:
     trigger_post_deploy_pipeline(args.device_list_file)
+
+
+def netmiko_command_execute(args: argparse.Namespace) -> None:
+    command = args.command
+    # dynamic import of the command module
+    importlib.import_module(command)
+    # get filter function in the command module
+    filter_func = getattr(sys.modules[command], "filter_hosts", None)
+    task_func = getattr(sys.modules[command], "task", None)
+
+    nr_runner = NornirRunner()
+    if args.device_list_file:
+        nr_runner.filter_hosts(args.device_list_file)
+    nr_runner.nornir = nr_runner.nornir.filter(filter_func=filter_func)
+    nr_runner.print_affect_hosts()
+
+    nr_runner.nornir.run(task=task_func, dry_run=args.dry_run)
 
 
 def main() -> None:
@@ -110,9 +128,35 @@ def main() -> None:
         "--device-list-file", type=str, help="Path to the device list file"
     )
 
+    # Netmiko Subparser
+    netmiko_parser = subparsers.add_parser(
+        "netmiko", help="Commands related to Netmiko operations"
+    )
+    netmiko_subparsers = netmiko_parser.add_subparsers(dest="command", required=True)
+
+    # Netmiko: command execute
+    netmiko_command_parser = netmiko_subparsers.add_parser(
+        "execute", help="Execute a specific netmiko command module"
+    )
+    netmiko_command_parser.add_argument(
+        "command",
+        type=str,
+        help="The command module name to execute (e.g., src.baseline_snmp.snmp_task)",
+    )
+    netmiko_command_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Perform a dry run without making changes",
+    )
+    netmiko_command_parser.add_argument(
+        "--device-list-file", type=str, help="Path to the device list file"
+    )
+    netmiko_command_parser.set_defaults(func=netmiko_command_execute)
+
     args = parser.parse_args()
 
-    if not args.category or not args.command:
+    # Handle cases where category or command might be missing (though subparsers should handle this)
+    if not hasattr(args, "category") or not hasattr(args, "command"):
         parser.print_help()
         sys.exit(1)
 
