@@ -6,6 +6,7 @@
 #   - trigger-post-deploy
 #   - post-deploy
 #
+#
 stages:
   - netmiko-snmp-dry-run
   - netmiko-snmp-deploy
