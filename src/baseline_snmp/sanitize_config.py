@@ -141,20 +141,3 @@ def sanitize_ios_config(lines):
         i += 1
 
     return sanitized_lines
-
-
-# Example Usage (optional - can be uncommented for testing)
-if __name__ == "__main__":
-    input_file = "cfg/tndo-c8k-1.cfg"
-    output_file = "cfg/tndo-c8k-1_sanitized.cfg"
-    try:
-        with open(input_file, "r") as f:
-            config_lines = f.readlines()  # Read lines with endings preserved
-        sanitized_config = sanitize_config(config_lines)
-        with open(output_file, "w") as f:
-            f.writelines(sanitized_config)  # Write lines with endings preserved
-        print(f"Sanitized config written to {output_file}")
-    except FileNotFoundError:
-        print(f"Error: {input_file} not found.")
-    except Exception as e:
-        print(f"An error occurred: {e}")

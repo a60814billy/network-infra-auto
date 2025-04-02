@@ -1,0 +1,12 @@
+---
+inventory:
+  plugin: SimpleInventory
+  options:
+    host_file: testbed/inventory/hosts.yaml
+    group_file: testbed/inventory/groups.yaml
+    defaults_file: testbed/inventory/defaults.yaml
+
+runner:
+  plugin: threaded
+  options:
+    num_workers: 10

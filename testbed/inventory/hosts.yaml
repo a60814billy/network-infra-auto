@@ -3,14 +3,14 @@ tndo-c8k-2:
   hostname: 10.192.4.182
   groups:
     - c8k
-    - c8k-conftest
+    - conftest
 tndo-n9k-2:
   hostname: 10.192.4.184
   groups:
     - n9k
-    - n9k-conftest
+    - conftest
 tndo-xrv-2:
   hostname: 10.192.4.186
   groups:
     - xrv
-    - xrv-conftest
+    - conftest
