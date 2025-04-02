@@ -84,8 +84,7 @@ run-specific-configs:
   rules:
     - if: $CI_PIPELINE_SOURCE == "api" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
-  needs:
-    - nornir-apply
+  allow_failure: true
 
 manual-check-config-changes:
   stage: manual-check
