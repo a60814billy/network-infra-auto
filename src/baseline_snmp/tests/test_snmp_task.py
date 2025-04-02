@@ -1,23 +1,14 @@
-import pytest
 import ipaddress
-from unittest.mock import MagicMock
 
-# Adjust the import path based on your project structure and how pytest discovers tests
-# Adjust the import path based on your project structure and how pytest discovers tests
-# Since the test is now inside src/baseline_snmp/tests, use a relative import.
 from ..snmp_task import get_snmp_vars_from_host
 
 
-# Mock host object for testing
 class MockHost:
     def __init__(self, data):
         self._data = data
 
     def get(self, key, default=None):
         return self._data.get(key, default)
-
-    # Add other methods/attributes if needed by the function under test in the future
-    # For get_snmp_vars_from_host, only .get() is used.
 
 
 def test_get_snmp_vars_from_host_no_baseline_data():
@@ -106,6 +97,3 @@ def test_get_snmp_vars_from_host_empty_access_list():
     result_vars = get_snmp_vars_from_host(mock_host)
     assert result_vars == expected_vars
     assert result_vars["_snmp_acl_allow_networks"] == []
-
-
-# Add more tests here for other functions in snmp_task.py later
