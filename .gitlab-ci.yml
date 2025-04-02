@@ -113,7 +113,7 @@ sync-configs-from-devices:
       else
         echo "No device list received from parent pipeline"
       fi
-    - infra-auto nornir sync-from --device-list-file .change_device_list
+    - infra-auto nornir sync-from
     - git config --global user.email "gitlab-ci@example.com"
     - git config --global user.name "GitLab CI"
     - git add cfg/
