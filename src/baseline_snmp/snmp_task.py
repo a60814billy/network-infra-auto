@@ -9,7 +9,11 @@ from jinja2 import Template
 from nornir import InitNornir
 from nornir.core.task import Task, Result
 
-from .sanitize_config import sanitize_ios_config, sanitize_nxos_config
+from .sanitize_config import (
+    sanitize_ios_config,
+    sanitize_nxos_config,
+    sanitize_iosxr_config,
+)
 from nornir.core.filter import F
 from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
 from nornir_napalm.plugins.connections import CONNECTION_NAME as NAPALM_CONNECTION_NAME
@@ -74,7 +78,11 @@ def ignore_config_diff_line(line: str) -> bool:
     """
     Ignore lines that start with !Time: or are empty
     """
-    return line.startswith("!Time: ") or line.startswith("!Running configuration")
+    return (
+        line.startswith("!Time: ")  # IOS-XE
+        or line.startswith("!Running configuration")  # NXOS
+        or line.startswith("!! Last configuration")  # IOS-XR
+    )
 
 
 def diff_cfg(old_cfg: str, new_cfg: str) -> str:
@@ -85,7 +93,7 @@ def diff_cfg(old_cfg: str, new_cfg: str) -> str:
         line for line in old_cfg.splitlines() if not ignore_config_diff_line(line)
     ]
     new_cfg_line_by_line = [
-        line for line in old_cfg.splitlines() if not ignore_config_diff_line(line)
+        line for line in new_cfg.splitlines() if not ignore_config_diff_line(line)
     ]
 
     diff = ""
@@ -115,6 +123,8 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
         sanitize_config = sanitize_ios_config(target_config_lines)
     elif platform == "nxos_ssh":
         sanitize_config = sanitize_nxos_config(target_config_lines)
+    elif platform == "iosxr":
+        sanitize_config = sanitize_iosxr_config(target_config_lines)
     else:
         raise ValueError(f"Unsupported platform: {platform}")
 
@@ -126,6 +136,8 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
     )
     first_hostname = list(test_nr.inventory.hosts.keys())[0]
     test_device = test_nr.inventory.hosts[first_hostname]
+
+    print("Test config on {}".format(test_device.name))
 
     # 3. restore test device config
     test_device_init_config = "testbed/cfg/{}.cfg".format(test_device.name)
@@ -152,6 +164,9 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
             changed=False,
             failed=True,
         )
+
+    if platform == "iosxr":
+        netmiko_test_con.commit()
 
     afrer_execute_config = test_con.get_config()["running"]
 
@@ -221,6 +236,13 @@ def task(task: Task, dry_run: Optional[bool] = False) -> Result:
         )
 
     # Apply the generated SNMP config commands to the actual target device
+
+    if precheck_result.diff.strip() == "":
+        return Result(
+            host=task.host,
+            result="No changes detected in the configuration.",
+            changed=False,
+        )
 
     try:
         # Use send_config_set for consistency with original code, though send_config might be better

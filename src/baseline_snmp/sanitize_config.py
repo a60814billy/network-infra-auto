@@ -323,13 +323,148 @@ def sanitize_nxos_config(lines):
     return sanitized_lines
 
 
+def sanitize_iosxr_config(lines):
+    """
+    Parses IOS-XR configuration lines and removes specific sensitive/unwanted information.
+
+    Args:
+        lines (list): A list of strings, where each string is a line from the config file.
+
+    Returns:
+        list: A list of strings representing the sanitized configuration.
+    """
+    sanitized_lines = []
+    skip_block_until_dedent_or_bang = False
+    skip_block_indent = -1
+    in_router_static = False
+    router_static_indent = -1
+    skip_router_static_vrf_mgmt = False
+    router_static_vrf_mgmt_indent = -1
+
+    i = 0
+    while i < len(lines):
+        original_line = lines[i]
+        stripped_line = original_line.strip()
+        leading_spaces = len(original_line) - len(original_line.lstrip(" "))
+
+        # --- Check if currently skipping a block ---
+        if skip_block_until_dedent_or_bang:
+            # Block ends if line is '!' at the same or lesser indent, or indentation decreases below the block start level
+            is_bang = stripped_line == "!"
+            current_indent = (
+                leading_spaces if stripped_line else skip_block_indent
+            )  # Treat empty lines as having block indent
+
+            # End condition: '!' at same or lesser indent OR actual dedent below block start
+            if (is_bang and current_indent <= skip_block_indent) or (
+                not is_bang and stripped_line and current_indent < skip_block_indent
+            ):
+                skip_block_until_dedent_or_bang = False
+                skip_block_indent = -1
+                if is_bang:  # Skip the ending '!'
+                    i += 1
+                    continue
+                # Don't skip the current line if it's a dedent, re-evaluate it
+            else:
+                i += 1  # Continue skipping lines within the block
+                continue
+
+        if skip_router_static_vrf_mgmt:
+            # Nested block ends if line is '!' at the same or lesser indent
+            is_bang = stripped_line == "!"
+            current_indent = (
+                leading_spaces if stripped_line else router_static_vrf_mgmt_indent
+            )
+
+            if is_bang and current_indent <= router_static_vrf_mgmt_indent:
+                skip_router_static_vrf_mgmt = False
+                router_static_vrf_mgmt_indent = -1
+                i += 1  # Skip the ending '!'
+                continue
+            else:
+                i += 1  # Continue skipping lines within the nested block
+                continue
+
+        # --- Check if inside router static block (but not the skipped nested part) ---
+        if in_router_static:
+            is_bang = stripped_line == "!"
+            current_indent = leading_spaces if stripped_line else router_static_indent
+
+            # Check for end of router static block
+            if (is_bang and current_indent <= router_static_indent) or (
+                not is_bang and stripped_line and current_indent < router_static_indent
+            ):
+                in_router_static = False
+                router_static_indent = -1
+                # Don't skip the line that ends the block (unless it's '!' that ended the nested block)
+                # Fall through to re-evaluate or append
+            else:
+                # Check for start of the nested vrf Mgmt-intf block to skip
+                if (
+                    stripped_line.startswith("vrf Mgmt-intf")
+                    and current_indent > router_static_indent
+                ):
+                    skip_router_static_vrf_mgmt = True
+                    router_static_vrf_mgmt_indent = current_indent
+                    i += 1  # Skip the start line of the nested block
+                    continue
+                # Otherwise, fall through to append logic (if not skipping nested block)
+
+        # --- Check for Start Markers & Single Line Removals ---
+        # Order matters: check for blocks first
+
+        # vrf Mgmt-intf block (top level only)
+        if stripped_line.startswith("vrf Mgmt-intf") and not in_router_static:
+            skip_block_until_dedent_or_bang = True
+            skip_block_indent = leading_spaces
+            i += 1  # Skip the start line
+            continue
+
+        # call-home block
+        if stripped_line.startswith("call-home"):
+            skip_block_until_dedent_or_bang = True
+            skip_block_indent = leading_spaces
+            i += 1  # Skip the start line
+            continue
+
+        # interface MgmtEth0/RP0/CPU0/0 block
+        if stripped_line.startswith("interface MgmtEth0/RP0/CPU0/0"):
+            skip_block_until_dedent_or_bang = True
+            skip_block_indent = leading_spaces
+            i += 1  # Skip the start line
+            continue
+
+        # username admin (potentially multi-line block)
+        if stripped_line.startswith("username admin"):
+            skip_block_until_dedent_or_bang = True
+            skip_block_indent = leading_spaces
+            i += 1  # Skip the start line and subsequent indented lines
+            continue
+
+        # router static block start (only track state, don't skip line yet)
+        if stripped_line.startswith("router static"):
+            in_router_static = True
+            router_static_indent = leading_spaces
+            # Fall through to append the "router static" line itself
+
+        # --- Append Line ---
+        # If we haven't continued (skipped) the line, append it
+        sanitized_lines.append(original_line)
+        i += 1
+
+    return sanitized_lines
+
+
 if __name__ == "__main__":
-    with open("cfg/tndo-n9k-1.cfg", "r") as f:
+    # Example usage for IOS-XR
+    with open("cfg/tndo-xrv-1.cfg", "r") as f:
         lines = f.readlines()
 
-    results = sanitize_nxos_config(lines)
+    results = sanitize_iosxr_config(lines)
 
-    with open("cfg/tndo-n9k-1-sanitized.cfg", "w") as f:
+    with open("cfg/tndo-xrv-1-sanitized.cfg", "w") as f:
         for line in results:
             f.write(line)
-    print("Sanitization complete. Check the output file.")
+    print(
+        "Sanitization complete for IOS-XR. Check the output file cfg/tndo-xrv-1-sanitized.cfg."
+    )
