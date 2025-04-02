@@ -141,3 +141,80 @@ def sanitize_ios_config(lines):
         i += 1
 
     return sanitized_lines
+
+
+def sanitize_nxos_config(lines):
+    """
+    Parses NX-OS configuration lines and removes specific sensitive/unwanted information.
+
+    Args:
+        lines (list): A list of strings, where each string is a line from the config file.
+
+    Returns:
+        list: A list of strings representing the sanitized configuration.
+    """
+    sanitized_lines = []
+    in_vrf_management = False
+    in_interface_mgmt0 = False
+
+    # Define start patterns
+    vrf_management_start = "vrf context management"
+    interface_mgmt0_start = "interface mgmt0"
+
+    # Define single lines/prefixes to remove
+    username_admin_pattern = "username admin "
+
+    i = 0
+    while i < len(lines):
+        original_line = lines[i]
+        # Preserve original line endings, but strip leading/trailing whitespace for matching
+        stripped_line = original_line.strip()
+        # Check if the original line has leading whitespace (indicating indentation)
+        leading_whitespace = len(original_line) > len(original_line.lstrip(" \t"))
+
+        # --- Block Handling: Check for End Markers FIRST ---
+
+        if in_vrf_management:
+            # NX-OS blocks typically end when indentation stops.
+            # Also check if the line is empty or just '!' which can sometimes delimit sections.
+            if not leading_whitespace or stripped_line == "!":
+                in_vrf_management = False
+                # Don't skip this line yet, let it be evaluated by the rules below
+            else:
+                i += 1  # Skip line inside the block
+                continue
+
+        if in_interface_mgmt0:
+            # NX-OS blocks typically end when indentation stops.
+            # Also check if the line is empty or just '!' which can sometimes delimit sections.
+            if not leading_whitespace or stripped_line == "!":
+                in_interface_mgmt0 = False
+                # Don't skip this line yet, let it be evaluated by the rules below
+            else:
+                i += 1  # Skip line inside the block
+                continue
+
+        # --- Start Markers & Single Line Removals ---
+
+        # Check for vrf context management start
+        if stripped_line.startswith(vrf_management_start):
+            in_vrf_management = True
+            i += 1  # Skip the start line
+            continue
+
+        # Check for interface mgmt0 start
+        if stripped_line.startswith(interface_mgmt0_start):
+            in_interface_mgmt0 = True
+            i += 1  # Skip the start line
+            continue
+
+        # Check for username admin line
+        if stripped_line.startswith(username_admin_pattern):
+            i += 1  # Skip username admin line
+            continue
+
+        # If none of the above matched, keep the original line
+        sanitized_lines.append(original_line)
+        i += 1
+
+    return sanitized_lines

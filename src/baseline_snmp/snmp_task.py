@@ -9,7 +9,7 @@ from jinja2 import Template
 from nornir import InitNornir
 from nornir.core.task import Task, Result
 
-from .sanitize_config import sanitize_ios_config
+from .sanitize_config import sanitize_ios_config, sanitize_nxos_config
 from nornir.core.filter import F
 from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
 from nornir_napalm.plugins.connections import CONNECTION_NAME as NAPALM_CONNECTION_NAME
@@ -102,7 +102,12 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
         target_config_lines = f.readlines()
 
     # 1. generate sanitized config
-    sanitize_config = sanitize_ios_config(target_config_lines)
+    if platform == "ios":
+        sanitize_config = sanitize_ios_config(target_config_lines)
+    elif platform == "nxos_ssh":
+        sanitize_config = sanitize_nxos_config(target_config_lines)
+    else:
+        raise ValueError(f"Unsupported platform: {platform}")
 
     # 2. get test device
     test_nr = (
