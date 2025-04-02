@@ -33,9 +33,5 @@ def netmiko_command_execute(args: argparse.Namespace) -> None:
     nr_runner.nornir = nr_runner.nornir.filter(filter_func=filter_func)
     nr_runner.print_affect_hosts()
 
-    for host in nr_runner.nornir.inventory.hosts.values():
-        # print data
-        print(host.extended_data())
-
     result = nr_runner.nornir.run(task=task_func, dry_run=args.dry_run)
     print_result(result)

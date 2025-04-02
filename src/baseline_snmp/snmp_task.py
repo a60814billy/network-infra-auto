@@ -7,10 +7,15 @@ from jinja2 import Template
 from nornir.core.task import Task, Result
 from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
 
-template_path = os.path.join(os.path.dirname(__file__), "templates/snmp_config.j2")
-template_content = open(template_path, "r").read()
+template_dir_path = os.path.join(os.path.dirname(__file__), "templates/")
 
-snmp_config_template = Template(template_content)
+template_path = {
+    "ios": "ios_snmp_config.j2",
+    "nxos_ssh": "nxos_snmp_config.j2",
+    "iosxr": "iosxr_snmp_config.j2",
+}
+
+# snmp_config_template = Template(template_content)
 
 
 def get_snmp_vars_from_host(host) -> dict:
@@ -41,6 +46,19 @@ def task(task: Task, dry_run: Optional[bool] = False) -> Result:
             changed=False,
         )
 
+    # Get the template path based on the platform
+    platform = task.host.platform
+    if platform not in template_path:
+        return Result(
+            host=task.host,
+            result=f"Unsupported platform: {platform}",
+            changed=False,
+        )
+    template_file = template_path[platform]
+    snmp_config_template = Template(
+        open(os.path.join(template_dir_path, template_file)).read()
+    )
+
     # Render the configuration using Jinja2
     rendered_config = snmp_config_template.render(**snmp_vars).splitlines()
     # Filter out comments and empty lines
@@ -58,12 +76,14 @@ def task(task: Task, dry_run: Optional[bool] = False) -> Result:
             changed=False,
         )
 
-    netmiko_con.send_config_set(filtered_config)
-    netmiko_con.save_config()
+    result = netmiko_con.send_config_set(filtered_config)
+    if "iosxr" in platform:
+        netmiko_con.commit()
+    if ["ios", "nxos_ssh"].__contains__(platform):
+        netmiko_con.save_config()
 
     return Result(
         host=task.host,
-        result="Configuration applied successfully",
-        diff="\n".join(filtered_config),
+        result=result,
         changed=True,
     )

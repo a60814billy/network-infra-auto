@@ -1,0 +1,17 @@
+snmp-server location {{ location }}
+snmp-server contact {{ contact }}
+
+no ip access-list snmp_acl
+ip access-list snmp_acl
+{% for access_list in snmp_access_list %}
+  permit {{access_list}}
+{% endfor %}
+
+{% if v2c is defined %}
+{% if v2c.ro_community is defined %}
+snmp-server community {{ v2c.ro_community }} RO Ipv4 snmp_acl
+{% endif %}
+{% if v2c.rw_community is defined %}
+snmp-server community {{ v2c.rw_community }} RW Ipv4 snmp_acl
+{% endif %}
+{% endif %}
