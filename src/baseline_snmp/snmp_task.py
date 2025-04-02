@@ -49,13 +49,21 @@ def task(task: Task, dry_run: Optional[bool] = False) -> Result:
     filtered_config = [
         line for line in rendered_config if not commend_regex.match(line)
     ]
-    # Send the configuration to the device
-    if not dry_run:
-        netmiko_con.send_config_set(filtered_config)
-        # Save the configuration
-        netmiko_con.save_config()
+
+    if task.is_dry_run(dry_run):
+        return Result(
+            host=task.host,
+            result="Dry run mode, no changes applied",
+            diff="\n".join(filtered_config),
+            changed=False,
+        )
+
+    netmiko_con.send_config_set(filtered_config)
+    netmiko_con.save_config()
+
     return Result(
         host=task.host,
         result="Configuration applied successfully",
+        diff="\n".join(filtered_config),
         changed=True,
     )

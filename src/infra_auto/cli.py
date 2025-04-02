@@ -14,6 +14,7 @@ from infra_auto.ci_utils.tasks import (
     trigger_post_deploy_pipeline,
 )
 from infra_auto.infra_nornir import NornirRunner
+from infra_auto.netmiko_command import netmiko_command_execute
 
 
 def nornir_sync_from_devices(args: argparse.Namespace) -> None:
@@ -40,23 +41,6 @@ def ci_report_diff_to_mr_comment(args: argparse.Namespace) -> None:
 
 def ci_trigger_sync_from_pipeline(args: argparse.Namespace) -> None:
     trigger_post_deploy_pipeline(args.device_list_file)
-
-
-def netmiko_command_execute(args: argparse.Namespace) -> None:
-    command = args.command
-    # dynamic import of the command module
-    importlib.import_module(command)
-    # get filter function in the command module
-    filter_func = getattr(sys.modules[command], "filter_hosts", None)
-    task_func = getattr(sys.modules[command], "task", None)
-
-    nr_runner = NornirRunner()
-    if args.device_list_file:
-        nr_runner.filter_hosts(args.device_list_file)
-    nr_runner.nornir = nr_runner.nornir.filter(filter_func=filter_func)
-    nr_runner.print_affect_hosts()
-
-    nr_runner.nornir.run(task=task_func, dry_run=args.dry_run)
 
 
 def main() -> None:

@@ -16,7 +16,7 @@ snmp-server contact {{ contact }}
 !
 ip access-list standard snmp_acl
 {% for snmp_access_src in _snmp_acl_allow_networks %}
-permit {{ snmp_access_src["network"] }} {{ snmp_access_src["wildcard"] }}
+  permit {{ snmp_access_src["network"] }} {{ snmp_access_src["wildcard"] }}
 {% endfor %}
 !
 ! snmp v2c

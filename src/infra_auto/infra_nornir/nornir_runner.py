@@ -1,4 +1,5 @@
 import os
+import yaml
 from typing import Optional
 
 from nornir import InitNornir
@@ -21,6 +22,36 @@ class NornirRunner:
         with open(device_list_file, "r") as f:
             device_list = f.read().strip().split("\n")
         return [device for device in device_list if device]
+
+    def load_group_vars(self, module_name: str, group_vars_file: str):
+        with open(group_vars_file, "r") as f:
+            group_vars = yaml.safe_load(f)
+
+        for group in group_vars:
+            if group in self.nornir.inventory.groups:
+                if module_name not in self.nornir.inventory.groups[group].data:
+                    self.nornir.inventory.groups[group].data[module_name] = {}
+                self.nornir.inventory.groups[group].data[module_name].update(
+                    group_vars[group]
+                )
+            else:
+                print(f"Group {group} not found in Nornir inventory")
+                raise ValueError(f"Group {group} not found in Nornir inventory")
+
+    def load_host_vars(self, module_name: str, host_vars_file: str):
+        with open(host_vars_file, "r") as f:
+            host_vars = yaml.safe_load(f)
+
+        for host in host_vars:
+            if host in self.nornir.inventory.hosts:
+                if module_name not in self.nornir.inventory.hosts[host].data:
+                    self.nornir.inventory.hosts[host].data[module_name] = {}
+                self.nornir.inventory.hosts[host].data[module_name].update(
+                    host_vars[host]
+                )
+            else:
+                print(f"Host {host} not found in Nornir inventory")
+                raise ValueError(f"Host {host} not found in Nornir inventory")
 
     def filter_hosts(self, device_list_file: str):
         """
