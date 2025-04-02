@@ -1,6 +1,6 @@
 .idea/
 vsocde/
-
+.venv/
 __pycache__/
 *.pyc
 *.pyo
