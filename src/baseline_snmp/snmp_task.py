@@ -1,22 +1,17 @@
+import difflib
+import ipaddress
 import os
 import re
-import ipaddress
-from typing import Optional, List
-
-import difflib
+from typing import List, Optional
 
 from jinja2 import Template
 from nornir import InitNornir
-from nornir.core.task import Task, Result
-
-from .sanitize_config import (
-    sanitize_ios_config,
-    sanitize_nxos_config,
-    sanitize_iosxr_config,
-)
 from nornir.core.filter import F
-from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
+from nornir.core.task import Result, Task
 from nornir_napalm.plugins.connections import CONNECTION_NAME as NAPALM_CONNECTION_NAME
+from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
+
+from ..config_utils import sanitize_config
 
 # Configure logging for Nornir initialization within the task (use cautiously)
 template_dir_path = os.path.join(os.path.dirname(__file__), "templates/")
@@ -119,15 +114,7 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
         target_config_lines = [line.rstrip("\n") for line in target_config_lines]
 
     # 1. generate sanitized config
-    if platform == "ios":
-        sanitize_config = sanitize_ios_config(target_config_lines)
-    elif platform == "nxos_ssh":
-        sanitize_config = sanitize_nxos_config(target_config_lines)
-    elif platform == "iosxr":
-        sanitize_config = sanitize_iosxr_config(target_config_lines)
-    else:
-        raise ValueError(f"Unsupported platform: {platform}")
-
+    sanitized_config = sanitize_config(platform, target_config_lines)
     # 2. get test device
     test_nr = (
         InitNornir(config_file=test_inventory_config)
@@ -146,7 +133,7 @@ def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
     test_con = test_device.get_connection(NAPALM_CONNECTION_NAME, test_nr.config)
     test_con.load_replace_candidate(filename=test_device_init_config)
     test_con.commit_config()
-    test_con.load_merge_candidate(config="\n".join(sanitize_config))
+    test_con.load_merge_candidate(config="\n".join(sanitized_config))
     test_con.commit_config()
 
     pre_execute_config = test_con.get_config()["running"]
@@ -188,7 +175,6 @@ def apply_netmiko_config(netmiko_connection, config_sets: List[str]):
         result = netmiko_connection.send_config_set(config_sets)
         return result
     except Exception as e:
-        logger.error(f"Failed to apply config: {e}")
         raise
 
 

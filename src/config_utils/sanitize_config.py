@@ -1,7 +1,19 @@
-import re  # Added import
+import re
+from typing import List
 
+def sanitize_config(platform: str, config_lines: List[str]) -> List[str]:
+    if platform == "ios":
+        return sanitize_ios_config(config_lines)
 
-def sanitize_ios_config(lines):
+    elif platform == "nxos":
+        return sanitize_nxos_config(config_lines)
+
+    elif platform == "iosxr":
+        return sanitize_iosxr_config(config_lines)
+
+    raise Exception("Unknown platform")
+
+def sanitize_ios_config(lines: List[str]) -> List[str]:
     """
     Parses IOS XE configuration lines and removes specific sensitive information.
 
@@ -453,18 +465,3 @@ def sanitize_iosxr_config(lines):
         i += 1
 
     return sanitized_lines
-
-
-if __name__ == "__main__":
-    # Example usage for IOS-XR
-    with open("cfg/tndo-xrv-1.cfg", "r") as f:
-        lines = f.readlines()
-
-    results = sanitize_iosxr_config(lines)
-
-    with open("cfg/tndo-xrv-1-sanitized.cfg", "w") as f:
-        for line in results:
-            f.write(line)
-    print(
-        "Sanitization complete for IOS-XR. Check the output file cfg/tndo-xrv-1-sanitized.cfg."
-    )
