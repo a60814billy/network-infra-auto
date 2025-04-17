@@ -4,4 +4,4 @@ stages:
 trigger-sync-pipeline:
   stage: trigger
   trigger:
-    include: ci/sync-pipeline.yml
+    include: ./ci/sync-pipeline.yml
