@@ -18,45 +18,10 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   GIT_STRATEGY: "fetch"
 
-# Apple config job
-cfg-sync-dry-run:
+sync-dry-run:
   stage: dry-run
   script:
-    - infra-auto ci detect-changes > .change_device_list
-    - infra-auto nornir apply --device-list-file .change_device_list --dry-run | tee -a .dry_run_output
-    # Remove terminal color codes from the output
-    - sed -i -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" .dry_run_output
-  after_script:
-    - infra-auto ci report-diff-to-mr --report-file .dry_run_output
+    - "infra-auto nornir sync-from --dry-run"
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH =~ /^sync\//'
       when: always
-      changes:
-        - "cfg/**/*"
-
-cfg-sync-deploy:
-  stage: deploy
-  script:
-    - infra-auto ci detect-changes > .change_device_list
-    - infra-auto nornir apply --device-list-file .change_device_list
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: always
-      changes:
-        - "cfg/**/*"
-
-sync-from-config:
-  stage: deploy
-  variables:
-    SYNC_FROM_BRANCH: "sync-from-config/$CI_PIPELINE_ID"
-  script:
-    - |
-      git checkout -b "SYNC_FROM_BRANCH"
-      infra-auto nornir sync-from --device-list-file .change_device_list
-      git config --global user.email "gitlab-ci@example.com"
-      git config --global user.name "GitLab CI"
-      git add cfg/
-      git commit -m "Automated: sync from config ($CI_PIPELINE_ID) [skip ci]"
-      git push -u origin $SYNC_FROM_BRANCH
-    - |
-      infra-auto ci create-mr --source-branch $SYNC_FROM_BRANCH --title "Automated: sync from config ($CI_PIPELINE_ID)" --target-branch $CI_DEFAULT_BRANCH --description "Automated sync-config [skip ci]"
