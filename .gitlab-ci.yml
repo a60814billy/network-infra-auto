@@ -7,4 +7,4 @@ trigger-sync-pipeline:
     include: ci/sync-pipeline.yml
   rules:
     # Trigger child pipeline for MRs with source or target branch matching sync/*
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
