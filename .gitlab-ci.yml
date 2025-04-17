@@ -18,6 +18,8 @@ variables:
 sync-dry-run:
   stage: dry-run
   script:
+    - "env"
     - "infra-auto nornir sync-from --dry-run"
   rules:
-    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH =~ /^sync\//'
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: always
