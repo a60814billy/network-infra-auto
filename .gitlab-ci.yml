@@ -57,7 +57,7 @@ apply-dry-run:
     - "infra-auto nornir apply --dry-run"
   rules:
     # Run on MR created/updated targeting sync-config/*
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync-config\//
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync-conf\//
 
 apply-deploy:
   stage: deploy
@@ -77,4 +77,4 @@ apply-deploy:
   rules:
     # Run on push to sync-config/*
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
-    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync-config\//
+    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync-conf\//
