@@ -96,9 +96,10 @@ manual-sync-trigger:
 
       git add .sync_devices
       git commit -m "manual sync $CI_AFFECTED_DEVICES" --allow-empty
+
       if [ -n "$GITLAB_API_TOKEN" ]; then
         echo "Using GITLAB_API_TOKEN for authentication"
-        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
+        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:$BRANCH_NAME
         response=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
           --data "source_branch=$BRANCH_NAME" \
           --data "target_branch=main" \
