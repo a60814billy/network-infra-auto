@@ -1,0 +1,35 @@
+stages:
+  - dry-run
+  - deploy
+default:
+  image: python:3.12.4
+  tags:
+    - docker
+  cache:
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install --force-reinstall -e .
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_STRATEGY: "fetch"
+
+sync-dry-run:
+  stage: dry-run
+  script:
+    - "infra-auto nornir sync-from --dry-run"
+  rules:
+    # Run on MR created/updated targeting sync/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^sync\//'
+      when: always
+
+# run deploy on MR merged
+sync-deploy:
+  stage: deploy
+  script:
+    - "infra-auto nornir sync-from"
+  rules:
+    # Run only when code is pushed to sync/* (i.e., after MR is merged)
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME =~ /^sync\//'
+      when: always
