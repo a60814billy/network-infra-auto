@@ -23,7 +23,7 @@ sync-dry-run:
     - "infra-auto nornir sync-from --dry-run"
   rules:
     # Run on MR created/updated targeting sync/*
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH =~ /^sync\//
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync\//
 
 sync-deploy:
   stage: deploy
@@ -37,4 +37,4 @@ sync-deploy:
     - "git push origin HEAD:refs/heads/$CI_COMMIT_BRANCH"
   rules:
     # Run on push to sync/*
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^sync\//
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "main"
