@@ -1,8 +1,5 @@
 stages:
   - dry-run
-  - lab-test
-  - deploy
-  - post-deploy
 
 default:
   image: python:3.12.4
@@ -24,4 +21,3 @@ sync-dry-run:
     - "infra-auto nornir sync-from --dry-run"
   rules:
     - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH =~ /^sync\//'
-      when: always
