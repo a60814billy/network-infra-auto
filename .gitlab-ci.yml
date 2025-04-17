@@ -37,4 +37,5 @@ sync-deploy:
     - "git push origin HEAD:refs/heads/$CI_COMMIT_BRANCH"
   rules:
     # Run on push to sync/*
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "main"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
+    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync\//
