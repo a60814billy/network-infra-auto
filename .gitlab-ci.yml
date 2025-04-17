@@ -1,4 +1,5 @@
 stages:
+  - trigger
   - dry-run
   - deploy
 
@@ -46,10 +47,10 @@ sync-deploy:
     # Run on push to sync/*
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
     - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync\//
+
 # ----------------------------------------------------------------------------------------------------------------
 # apply config changes to devices
 # ----------------------------------------------------------------------------------------------------------------
-
 apply-dry-run:
   stage: dry-run
   script:
@@ -78,3 +79,65 @@ apply-deploy:
     # Run on push to sync-config/*
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
     - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync-conf\//
+# ----------------------------------------------------------------------------------------------------------------
+# Manual sync
+# ----------------------------------------------------------------------------------------------------------------
+manual-sync-trigger:
+  stage: trigger
+  script:
+    - "env"
+    - |
+      git config --global user.name "GitLab CI"
+      git config --global user.email "gitlab@example.com"
+      BRANCH_NAME="sync-manual/$RANDOM"
+      git checkout -b "$BRANCH_NAME"
+
+      echo $CI_AFFECTED_DEVICES | tr ',' '\n' > .sync_devices
+
+      git add .sync_devices
+      git commit -m "manual sync $CI_AFFECTED_DEVICES" --allow-empty
+      if [ -n "$GITLAB_API_TOKEN" ]; then
+        echo "Using GITLAB_API_TOKEN for authentication"
+        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
+        response=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+          --data "source_branch=$BRANCH_NAME" \
+          --data "target_branch=main" \
+          --data-urlencode "title=manual sync $CI_AFFECTED_DEVICES" \
+          --data-urlencode "description=manual sync $CI_AFFECTED_DEVICES" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests")
+        echo "Merge Request created:"
+        echo "$response"
+      fi
+  rules:
+    # Run on MR created/updated targeting sync/*
+    - if: $CI_PIPELINE_SOURCE == "api" && $CI_COMMAND == "manual-sync"
+
+manual-sync-dry-run:
+  stage: dry-run
+  script:
+    - "env"
+    - "infra-auto nornir sync-from --device-list-file .sync_devices --dry-run"
+  rules:
+    # Run on push to sync/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync-manual\//
+
+manual-sync-deploy:
+  stage: deploy
+  script:
+    - "env"
+    - "infra-auto nornir sync-from --device-list-file .sync_devices"
+    - |
+      git config --global user.name "GitLab CI"
+      git config --global user.email "gitlab@example.com"
+      rm .sync_devices
+      git add .sync_devices
+      git add cfg/
+      git commit -m "Sync from $CI_COMMIT_BRANCH [ci skip]" --allow-empty
+      if [ -n "$GITLAB_API_TOKEN" ]; then
+        echo "Using GITLAB_API_TOKEN for authentication"
+        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
+      fi
+  rules:
+    # Run on push to sync/*
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
+    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync-manual\//
