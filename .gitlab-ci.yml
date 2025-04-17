@@ -30,13 +30,11 @@ sync-deploy:
   script:
     - "env"
     - "infra-auto nornir sync-from"
-    # commit the changes
     - "git config user.name 'GitLab CI'"
     - "git config user.email 'gitlab@example.com'"
     - "git add cfg/"
     - "git commit -m 'Sync from $CI_COMMIT_BRANCH' [ci skip]"
     - "git push origin HEAD:refs/heads/$CI_COMMIT_BRANCH"
-
   rules:
     # Run on push to sync/*
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^sync\//
