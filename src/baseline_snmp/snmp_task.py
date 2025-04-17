@@ -174,7 +174,7 @@ def apply_netmiko_config(netmiko_connection, config_sets: List[str]):
     try:
         result = netmiko_connection.send_config_set(config_sets)
         return result
-    except Exception as e:
+    except Exception:
         raise
 
 

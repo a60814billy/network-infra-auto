@@ -29,7 +29,7 @@ def diff_cfg(old_cfg: str, new_cfg: str) -> str:
 def napalm_sync_config_from_devices(
     task: Task, dry_run: Optional[bool] = False
 ) -> Result:
-    change = False
+    changed = False
     diff = ""
     result = ""
 

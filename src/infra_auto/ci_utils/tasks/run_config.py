@@ -1,6 +1,4 @@
-import os
 from typing import List, Optional
-from pathlib import Path
 
 from nornir.core.task import Result, Task
 from nornir_utils.plugins.functions import print_result
