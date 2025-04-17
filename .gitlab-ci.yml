@@ -7,8 +7,4 @@ trigger-sync-pipeline:
     include: ci/sync-pipeline.yml
   rules:
     # Trigger child pipeline for MRs with source or target branch matching sync/*
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync\//'
-      when: always
-    # Trigger child pipeline for pushes to sync/* branches (after MR merged)
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME =~ /^sync\//'
-      when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"
