@@ -1,10 +1,7 @@
 stages:
-  - lint
   - dry-run
+  - lab-test
   - deploy
-  - manual-check
-  - run_custom_config
-  - trigger-post-deploy
   - post-deploy
 
 default:
@@ -19,29 +16,13 @@ default:
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_STRATEGY: "fetch"
 
-code-format-check:
-  stage: lint
-  script:
-    - pip install black isort
-    - black --check --diff src/
-    - isort --check --diff src/
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
-      when: always
-
-nornir-dry-run:
+# Apple config job
+cfg-sync-dry-run:
   stage: dry-run
   script:
-    - |
-      if [ -n "$CI_CHANGE_DEVICES" ]; then
-        echo "Using CI_CHANGE_DEVICES as device list"
-        echo "$CI_CHANGE_DEVICES" | tr ',' '\n' > .change_device_list
-      else
-        infra-auto ci detect-changes | sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" | tee .change_device_list
-      fi
+    - infra-auto ci detect-changes > .change_device_list
     - infra-auto nornir apply --device-list-file .change_device_list --dry-run | tee -a .dry_run_output
     # Remove terminal color codes from the output
     - sed -i -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" .dry_run_output
@@ -50,87 +31,32 @@ nornir-dry-run:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
-  variables:
-    NORNIR_LOGGING_LEVEL: "DEBUG"
-  artifacts:
-    paths:
-      - nornir.log
-    expire_in: "1 day"
+      changes:
+        - "cfg/**/*"
 
-nornir-apply:
+cfg-sync-deploy:
   stage: deploy
   script:
-    - infra-auto ci detect-changes | sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" | tee .change_device_list
+    - infra-auto ci detect-changes > .change_device_list
     - infra-auto nornir apply --device-list-file .change_device_list
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
-  artifacts:
-    paths:
-      - .change_device_list
+      changes:
+        - "cfg/**/*"
 
-run-specific-configs:
-  stage: run_custom_config
+sync-from-config:
+  stage: deploy
+  variables:
+    SYNC_FROM_BRANCH: "sync-from-config/$CI_PIPELINE_ID"
   script:
     - |
-      echo "$CI_CHANGE_DEVICES" | tr ',' '\n' > .change_device_list
-      if [ -n "$CI_RUN_CONFIGS" ]; then
-        echo "Running specific configs: $CI_RUN_CONFIGS"
-        infra-auto ci run_config --device-list-file .change_device_list --configs "$CI_RUN_CONFIGS"
-      else
-        echo "No CI_RUN_CONFIGS specified, skipping this job"
-        exit 0
-      fi
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "api" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: always
-  allow_failure: true
-
-manual-check-config-changes:
-  stage: manual-check
-  tags:
-    - shell
-  script:
-    - echo "manual check"
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
-      when: manual
-
-trigger-post-deploy:
-  stage: trigger-post-deploy
-  script:
-    - infra-auto ci trigger-sync-from-pipeline --device-list-file .change_device_list
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
-
-sync-configs-from-devices:
-  stage: post-deploy
-  script:
+      git checkout -b "SYNC_FROM_BRANCH"
+      infra-auto nornir sync-from --device-list-file .change_device_list
+      git config --global user.email "gitlab-ci@example.com"
+      git config --global user.name "GitLab CI"
+      git add cfg/
+      git commit -m "Automated: sync from config ($CI_PIPELINE_ID) [skip ci]"
+      git push -u origin $SYNC_FROM_BRANCH
     - |
-      if [ -n "$CHANGE_DEVICE_LIST" ]; then
-        echo "$CHANGE_DEVICE_LIST" > .change_device_list
-        echo "Received device list from parent pipeline: $CHANGE_DEVICE_LIST"
-      else
-        echo "No device list received from parent pipeline"
-      fi
-    - infra-auto nornir sync-from
-    - git config --global user.email "gitlab-ci@example.com"
-    - git config --global user.name "GitLab CI"
-    - git add cfg/
-    - |
-      if git diff --cached --quiet; then
-        echo "No changes to commit"
-      else
-        # Use GITLAB_PUSH_TOKEN (should be set as a protected CI/CD variable with write_repository scope)
-        git commit -m "Update device configurations [skip ci]"
-        
-        # Try different push methods in order of preference
-        if [ -n "$GITLAB_API_TOKEN" ]; then
-          echo "Using GITLAB_API_TOKEN for authentication"
-          git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
-        fi
-      fi
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "api" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: always
-  allow_failure: true
+      infra-auto ci create-mr --source-branch $SYNC_FROM_BRANCH --title "Automated: sync from config ($CI_PIPELINE_ID)" --target-branch $CI_DEFAULT_BRANCH --description "Automated sync-config [skip ci]"
