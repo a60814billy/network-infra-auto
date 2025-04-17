@@ -1,7 +1,42 @@
 stages:
-  - trigger
+  - dry-run
+  - deploy
 
-trigger-sync-pipeline:
-  stage: trigger
-  trigger:
-    include: /ci/sync-pipeline.yml
+default:
+  image: python:3.12.4
+  tags:
+    - docker
+  cache:
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install --force-reinstall -e .
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_STRATEGY: "fetch"
+
+sync-dry-run:
+  stage: dry-run
+  script:
+    - "env"
+    - "infra-auto nornir sync-from --dry-run"
+  rules:
+    # Run on MR created/updated targeting sync/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH =~ /^sync\//
+
+sync-deploy:
+  stage: deploy
+  script:
+    - "env"
+    - "infra-auto nornir sync-from"
+    # commit the changes
+    - "git config user.name 'GitLab CI'"
+    - "git config user.email 'gitlab@example.com'"
+    - "git add cfg/"
+    - "git commit -m 'Sync from $CI_COMMIT_BRANCH' [ci skip]"
+    - "git push origin HEAD:refs/heads/$CI_COMMIT_BRANCH"
+
+  rules:
+    # Run on push to sync/*
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^sync\//
