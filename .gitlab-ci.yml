@@ -30,11 +30,20 @@ sync-deploy:
   script:
     - "env"
     - "infra-auto nornir sync-from"
-    - "git config user.name 'GitLab CI'"
+    - ""
     - "git config user.email 'gitlab@example.com'"
     - "git add cfg/"
     - "git commit -m 'Sync from $CI_COMMIT_BRANCH' [ci skip]"
     - "git push origin HEAD:refs/heads/$CI_COMMIT_BRANCH"
+    - |
+      git config --global user.name "GitLab CI"
+      git config --global user.email "gitlab@example.com"
+      git add cfg/
+      git commit -m "Sync from $CI_COMMIT_BRANCH [ci skip]" --allow-empty
+      if [ -n "$GITLAB_API_TOKEN" ]; then
+        echo "Using GITLAB_API_TOKEN for authentication"
+        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
+      fi
   rules:
     # Run on push to sync/*
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
