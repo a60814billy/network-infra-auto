@@ -24,6 +24,13 @@ class NornirCommand:
         sync_from_parser.add_argument(
             "--device-list-file", type=str, help="Path to the device list file"
         )
+        sync_from_parser.add_argument(
+            "--config-file",
+            "-c",
+            type=str,
+            help="Path to the config file",
+            default="nornir.yaml",
+        )
 
         # Nornir: sync-to command
         apply_to_parser = nornir_subparsers.add_parser(
@@ -38,15 +45,26 @@ class NornirCommand:
         apply_to_parser.add_argument(
             "--device-list-file", type=str, help="Path to the device list file"
         )
+        apply_to_parser.add_argument(
+            "--config-file",
+            "-c",
+            type=str,
+            help="Path to the config file",
+            default="nornir.yaml",
+        )
 
     def nornir_sync_from_devices(self, args):
         print("Syncing data from remote to local...")
-        nr = NornirRunner().filter_hosts(args.device_list_file)
+        nr = NornirRunner(config_file=args.config_file).filter_hosts(
+            args.device_list_file
+        )
         nr.print_affect_hosts()
         print_result(nr.sync_from(dry_run=args.dry_run))
 
     def nornir_apply_to_devices(self, args):
         print("Syncing data from local to remote...")
-        nr = NornirRunner().filter_hosts(args.device_list_file)
+        nr = NornirRunner(config_file=args.config_file).filter_hosts(
+            args.device_list_file
+        )
         nr.print_affect_hosts()
         print_result(nr.apply_to(dry_run=args.dry_run))

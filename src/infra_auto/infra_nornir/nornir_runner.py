@@ -9,11 +9,11 @@ from .tasks import napalm_apply_config_to_devices, napalm_sync_config_from_devic
 
 
 class NornirRunner:
-    def __init__(self, nornir: InitNornir = None):
+    def __init__(self, nornir: InitNornir = None, config_file: str = "nornir.yaml"):
         if nornir:
             self.nornir = nornir
         else:
-            self.nornir = InitNornir(config_file="nornir.yaml")
+            self.nornir = InitNornir(config_file=config_file)
 
     def _device_list_exists(self):
         return os.path.exists(".change_device_list")
