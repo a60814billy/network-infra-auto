@@ -142,3 +142,30 @@ manual-sync-deploy:
     # Run on push to sync/*
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
     - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync-manual\//
+
+netmiko-snmp-dry-run:
+  stage: dry-run
+  script:
+    - "env"
+    - "infra-auto netmiko execute baseline_snmp --dry-run"
+  rules:
+    # Run on MR created/updated targeting sync/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^conf-snmp\//
+
+netmiko-snmp-deploy:
+  stage: deploy
+  script:
+    - "env"
+    - "infra-auto netmiko execute baseline_snmp"
+    - |
+      git config --global user.name "GitLab CI"
+      git config --global user.email "gitlab@example.com"
+      git add cfg/
+      git commit -m "Sync from $CI_COMMIT_BRANCH [ci skip]" --allow-empty
+      if [ -n "$GITLAB_API_TOKEN" ]; then
+        echo "Using GITLAB_API_TOKEN for authentication"
+        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
+    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'conf-snmp\//
