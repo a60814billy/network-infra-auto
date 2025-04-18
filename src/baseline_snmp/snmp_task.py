@@ -11,7 +11,7 @@ from nornir.core.task import Result, Task
 from nornir_napalm.plugins.connections import CONNECTION_NAME as NAPALM_CONNECTION_NAME
 from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
 
-from ..config_utils import sanitize_config
+from config_utils import sanitize_config
 
 # Configure logging for Nornir initialization within the task (use cautiously)
 template_dir_path = os.path.join(os.path.dirname(__file__), "templates/")
