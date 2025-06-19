@@ -231,7 +231,7 @@ def task(task: Task, dry_run: Optional[bool] = False) -> Result:
         )
 
     try:
-        # Use send_config_set for consistency with original code, though send_config might be better
+        # Use send_config_set for consistency with original code
         result_output = netmiko_con.send_config_set(snmp_config_commands)
 
         # Commit/Save based on platform
