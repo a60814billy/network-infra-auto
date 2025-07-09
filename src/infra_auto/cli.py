@@ -8,7 +8,7 @@ from infra_auto.commands import (
     ApplyCfgToDeviceCommand,
     ChangeHostnameCommand,
     CiCommand,
-    NetmikoCommand,
+    ExecuteCommand,
     SyncConfigFromDeviceCommand,
 )
 
@@ -20,7 +20,7 @@ def main() -> None:
     CiCommand(subparsers)
     SyncConfigFromDeviceCommand(subparsers)
     ApplyCfgToDeviceCommand(subparsers)
-    NetmikoCommand(subparsers)
+    ExecuteCommand(subparsers)
     ChangeHostnameCommand(subparsers)
 
     args = parser.parse_args()
@@ -30,9 +30,9 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    # Some commands like change-hostname, sync-config-from-device, apply-cfg-to-device don't have subcommands, so they won't have a 'command' attribute
+    # Some commands like change-hostname, sync-config-from-device, apply-cfg-to-device, execute don't have subcommands, so they won't have a 'command' attribute
     # Only check for 'command' if it's expected (for commands with subcommands)
-    if args.category in ["ci", "netmiko"] and not hasattr(args, "command"):
+    if args.category in ["ci"] and not hasattr(args, "command"):
         parser.print_help()
         sys.exit(1)
 

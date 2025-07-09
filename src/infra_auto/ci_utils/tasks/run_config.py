@@ -1,10 +1,10 @@
 from typing import List, Optional
 
 from nornir.core.task import Result, Task
-from nornir_utils.plugins.functions import print_result
 from nornir_napalm.plugins.connections import CONNECTION_NAME
+from nornir_utils.plugins.functions import print_result
 
-from infra_auto.infra_nornir import NornirRunner
+from infra_auto.task_runners import NornirRunner
 
 
 def napalm_apply_specific_config(task: Task, configs: str) -> Result:

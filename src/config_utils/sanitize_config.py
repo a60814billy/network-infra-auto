@@ -1,6 +1,7 @@
 import re
 from typing import List
 
+
 def sanitize_config(platform: str, config_lines: List[str]) -> List[str]:
     if platform == "ios":
         return sanitize_ios_config(config_lines)
@@ -12,6 +13,7 @@ def sanitize_config(platform: str, config_lines: List[str]) -> List[str]:
         return sanitize_iosxr_config(config_lines)
 
     raise Exception("Unknown platform")
+
 
 def sanitize_ios_config(lines: List[str]) -> List[str]:
     """

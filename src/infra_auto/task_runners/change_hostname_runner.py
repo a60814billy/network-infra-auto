@@ -8,7 +8,7 @@ from nornir.core import Nornir
 from nornir.core.task import Result, Task
 from nornir_utils.plugins.functions import print_result
 
-from ..infra_nornir.tasks.napalm_sync_config_from_devices import (
+from nornir_tasks.napalm_sync_config_from_devices import (
     napalm_sync_config_from_devices,
 )
 
@@ -27,7 +27,7 @@ class ChangeHostnameTaskRunner:
         self._old_hosts = list(self._mapping.keys())
 
         # setup nornir instance before file change
-        self._nornir = InitNornir(config_file='nornir.yaml')
+        self._nornir = InitNornir(config_file="nornir.yaml")
 
     def check_host(self, host: str):
         # 1. check host in hosts.yaml
@@ -58,8 +58,11 @@ class ChangeHostnameTaskRunner:
 
         if dry_run:
             d = difflib.Differ()
-            diff = d.compare(old_content.splitlines(keepends=True), hosts_content.splitlines(keepends=True))
-            print('changes of hosts.yaml:')
+            diff = d.compare(
+                old_content.splitlines(keepends=True),
+                hosts_content.splitlines(keepends=True),
+            )
+            print("changes of hosts.yaml:")
             print("".join(diff))
             return
 

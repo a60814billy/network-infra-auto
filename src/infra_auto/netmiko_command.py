@@ -1,11 +1,11 @@
-import os
-import sys
 import argparse
 import importlib
+import os
+import sys
 
 from nornir_utils.plugins.functions import print_result
 
-from infra_auto.infra_nornir import NornirRunner
+from infra_auto.task_runners import NornirRunner
 
 
 def netmiko_command_execute(args: argparse.Namespace) -> None:

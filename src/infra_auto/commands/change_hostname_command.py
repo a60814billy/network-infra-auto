@@ -1,6 +1,6 @@
 import yaml
 
-from ..task_runners.change_hostname_task_runner import ChangeHostnameTaskRunner
+from infra_auto.task_runners import ChangeHostnameTaskRunner
 
 
 class ChangeHostnameCommand:

@@ -1,11 +1,11 @@
 import os
-import yaml
 from typing import Optional
 
+import yaml
 from nornir import InitNornir
 from nornir.core.filter import F
 
-from .tasks import napalm_apply_config_to_devices, napalm_sync_config_from_devices
+from nornir_tasks import napalm_apply_config_to_devices, napalm_sync_config_from_devices
 
 
 class NornirRunner:

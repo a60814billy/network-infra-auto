@@ -32,7 +32,6 @@ class GitLabClient:
         return resp.json()
 
     def trigger_pipeline(self, project_id: str, branch: str, variables: list):
-
         default_variables = [{"key": "CI_PIPELINE_SOURCE", "value": "api"}]
 
         # remove duplicates in variables

@@ -1,6 +1,6 @@
 from nornir_utils.plugins.functions import print_result
 
-from ..infra_nornir import NornirRunner
+from ..task_runners import NornirRunner
 
 
 class SyncConfigFromDeviceCommand:
