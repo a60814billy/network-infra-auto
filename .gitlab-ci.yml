@@ -11,6 +11,7 @@ build-docker-image:
     IMAGE_NAME: "a60814billy/infra-auto"
     IMAGE_TAG: "latest"
   before_script:
+    - apk add --no-cache git
     - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
     - docker info
   script:
