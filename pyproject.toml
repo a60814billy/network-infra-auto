@@ -14,7 +14,8 @@ license = { text = "Proprietary" }
 authors = [{ name = "BoHong Li", email = "raccoon.li@ain.training" }]
 dependencies = [
     "napalm>=5.0.0",
-    "netmiko>=4.5.0",
+    "napalm-hpe-comware",
+    "netmiko>=4.5.1",
     "nornir>=3.5.0",
     "nornir-napalm>=0.5.0",
     "nornir-netmiko>=1.0.1",
@@ -26,6 +27,10 @@ infra-auto = "infra_auto.cli:main"
 
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+netmiko = { path = "deps/netmiko-4.5.1-py3-none-any.whl" }
+napalm-hpe-comware = { path = "deps/napalm_hpe_comware-0.1.0-py3-none-any.whl" }
 
 [dependency-groups]
 dev = ["pytest>=8.3.5"]
