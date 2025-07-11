@@ -1,171 +1,26 @@
 stages:
-  - trigger
-  - dry-run
-  - deploy
+  - build
 
-default:
-  image: python:3.12.4
-  tags:
-    - docker
-  cache:
-    paths:
-      - .cache/pip
+build-docker-image:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    IMAGE_NAME: "a60814billy/infra-auto"
+    IMAGE_TAG: "latest"
   before_script:
-    - pip install --force-reinstall -e .
-
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  GIT_STRATEGY: "fetch"
-
-# ----------------------------------------------------------------------------------------------------------------
-# Sync new devices configurations
-# ----------------------------------------------------------------------------------------------------------------
-sync-dry-run:
-  stage: dry-run
+    - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+    - docker info
   script:
-    - "env"
-    - "infra-auto nornir sync-from --dry-run"
-  rules:
-    # Run on MR created/updated targeting sync/*
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync\//
-
-sync-deploy:
-  stage: deploy
-  script:
-    - "env"
-    - "infra-auto nornir sync-from"
-    - |
-      git config --global user.name "GitLab CI"
-      git config --global user.email "gitlab@example.com"
-      git add cfg/
-      git commit -m "Sync from $CI_COMMIT_BRANCH [ci skip]" --allow-empty
-      if [ -n "$GITLAB_API_TOKEN" ]; then
-        echo "Using GITLAB_API_TOKEN for authentication"
-        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
-      fi
-  rules:
-    # Run on push to sync/*
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
-    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync\//
-
-# ----------------------------------------------------------------------------------------------------------------
-# apply config changes to devices
-# ----------------------------------------------------------------------------------------------------------------
-apply-dry-run:
-  stage: dry-run
-  script:
-    - "env"
-    - "infra-auto nornir apply --dry-run"
-  rules:
-    # Run on MR created/updated targeting sync-config/*
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync-conf\//
-
-apply-deploy:
-  stage: deploy
-  script:
-    - "env"
-    - "infra-auto nornir apply"
-    - "infra-auto nornir sync-from"
-    - |
-      git config --global user.name "GitLab CI"
-      git config --global user.email "gitlab@example.com"
-      git add cfg/
-      git commit -m "Sync from $CI_COMMIT_BRANCH [ci skip]" --allow-empty
-      if [ -n "$GITLAB_API_TOKEN" ]; then
-        echo "Using GITLAB_API_TOKEN for authentication"
-        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
-      fi
-  rules:
-    # Run on push to sync-config/*
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
-    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync-conf\//
-# ----------------------------------------------------------------------------------------------------------------
-# Manual sync
-# ----------------------------------------------------------------------------------------------------------------
-manual-sync-trigger:
-  stage: trigger
-  script:
-    - "env"
-    - |
-      git config --global user.name "GitLab CI"
-      git config --global user.email "gitlab@example.com"
-      BRANCH_NAME="sync-manual/$RANDOM"
-      git checkout -b "$BRANCH_NAME"
-
-      echo $CI_AFFECTED_DEVICES | tr ',' '\n' > .sync_devices
-
-      git add .sync_devices
-      git commit -m "manual sync $CI_AFFECTED_DEVICES" --allow-empty
-
-      if [ -n "$GITLAB_API_TOKEN" ]; then
-        echo "Using GITLAB_API_TOKEN for authentication"
-        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:$BRANCH_NAME
-        response=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
-          --data "source_branch=$BRANCH_NAME" \
-          --data "target_branch=main" \
-          --data-urlencode "title=manual sync $CI_AFFECTED_DEVICES" \
-          --data-urlencode "description=manual sync $CI_AFFECTED_DEVICES" \
-          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests")
-        echo "Merge Request created:"
-        echo "$response"
-      fi
-  rules:
-    # Run on MR created/updated targeting sync/*
-    - if: $CI_PIPELINE_SOURCE == "api" && $CI_COMMAND == "manual-sync"
-
-manual-sync-dry-run:
-  stage: dry-run
-  script:
-    - "env"
-    - "infra-auto nornir sync-from --device-list-file .sync_devices --dry-run"
-  rules:
-    # Run on push to sync/*
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^sync-manual\//
-
-manual-sync-deploy:
-  stage: deploy
-  script:
-    - "env"
-    - "infra-auto nornir sync-from --device-list-file .sync_devices"
-    - |
-      git config --global user.name "GitLab CI"
-      git config --global user.email "gitlab@example.com"
-      rm .sync_devices
-      git add .sync_devices
-      git add cfg/
-      git commit -m "Sync from $CI_COMMIT_BRANCH [ci skip]" --allow-empty
-      if [ -n "$GITLAB_API_TOKEN" ]; then
-        echo "Using GITLAB_API_TOKEN for authentication"
-        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
-      fi
-  rules:
-    # Run on push to sync/*
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
-    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'sync-manual\//
-
-netmiko-snmp-dry-run:
-  stage: dry-run
-  script:
-    - "env"
-    - "infra-auto netmiko execute baseline_snmp --dry-run"
-  rules:
-    # Run on MR created/updated targeting sync/*
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^conf-snmp\//
-
-netmiko-snmp-deploy:
-  stage: deploy
-  script:
-    - "env"
-    - "infra-auto netmiko execute baseline_snmp"
-    - |
-      git config --global user.name "GitLab CI"
-      git config --global user.email "gitlab@example.com"
-      git add cfg/
-      git commit -m "Sync from $CI_COMMIT_BRANCH [ci skip]" --allow-empty
-      if [ -n "$GITLAB_API_TOKEN" ]; then
-        echo "Using GITLAB_API_TOKEN for authentication"
-        git push http://CI:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git HEAD:main
-      fi
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+  after_script:
+    - docker logout
   rules:
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "$CI_DEFAULT_BRANCH"
-    - if: $CI_COMMIT_TITLE =~ /^Merge branch 'conf-snmp\//
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+  tags:
+    - ain-lab
