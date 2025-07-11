@@ -4,8 +4,6 @@ stages:
 build-docker-image:
   stage: build
   image: docker:24.0.5
-  services:
-    - docker:24.0.5-dind
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
     IMAGE_NAME: "a60814billy/infra-auto"
