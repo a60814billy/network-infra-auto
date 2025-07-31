@@ -1,7 +1,0 @@
----
-c8k:
-  platform: ios
-n9k:
-  platform: nxos_ssh
-xrv:
-  platform: iosxr
