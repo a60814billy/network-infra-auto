@@ -14,7 +14,7 @@ from infra_auto.commands import (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="iac_auto")
+    parser = argparse.ArgumentParser(prog="infra-auto")
     subparsers = parser.add_subparsers(dest="category", required=True)
 
     CiCommand(subparsers)
