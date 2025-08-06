@@ -81,7 +81,7 @@ class ChangeHostnameTaskRunner:
 
         def change_hostname(task: Task, dry_run: bool = False) -> Result:
             new_hostname = mapping[task.host.name]
-            if task.host.platform in ["ios", "nxos_ssh", "iosxr"]:
+            if task.host.platform in ["ios", "nxos_ssh", "iosxr", "hp_comware"]:
                 if not task.is_dry_run(dry_run):
                     conn = task.host.get_connection("netmiko", task.nornir.config)
                     result = conn.send_config_set(
