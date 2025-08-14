@@ -17,4 +17,4 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /build/dist/*.whl ./
-RUN pip install *.whl && rm *.whl
+RUN pip install *.whl && rm *.whl  && pip install telnetlib
