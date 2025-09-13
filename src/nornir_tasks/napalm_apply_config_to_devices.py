@@ -14,7 +14,7 @@ def check_config_hostname(
         config = f.read()
 
     configured_hostname = ""
-    if task.host.platform in ["ios", "iosxr", "nxos"]:
+    if task.host.platform in ["ios", "iosxr", "nxos_ssh"]:
         config = [line.strip() for line in config.splitlines() if line.strip()]
         for line in config:
             if line.startswith("hostname "):
