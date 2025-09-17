@@ -1,17 +1,13 @@
-import difflib
 import ipaddress
 import os
 import re
 from typing import List, Optional
 
 from jinja2 import Template
-from nornir import InitNornir
-from nornir.core.filter import F
 from nornir.core.task import Result, Task
-from nornir_napalm.plugins.connections import CONNECTION_NAME as NAPALM_CONNECTION_NAME
 from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
 
-from config_utils import sanitize_config
+from infra_auto.testbed.execute import run_preconfig_check
 
 # Configure logging for Nornir initialization within the task (use cautiously)
 template_dir_path = os.path.join(os.path.dirname(__file__), "templates/")
@@ -64,107 +60,6 @@ def generate_snmp_config(platform: str, snmp_vars: dict) -> list[str]:
         line for line in rendered_config if not commend_regex.match(line)
     ]
     return filtered_config
-
-
-# --- Pre-config Check Helper Functions ---
-
-
-def ignore_config_diff_line(line: str) -> bool:
-    """
-    Ignore lines that start with !Time: or are empty
-    """
-    return (
-        line.startswith("!Time: ")  # IOS-XE
-        or line.startswith("!Running configuration")  # NXOS
-        or line.startswith("!! Last configuration")  # IOS-XR
-    )
-
-
-def diff_cfg(old_cfg: str, new_cfg: str) -> str:
-    """
-    Compare two configurations and return the diff
-    """
-    old_cfg_line_by_line = [
-        line for line in old_cfg.splitlines() if not ignore_config_diff_line(line)
-    ]
-    new_cfg_line_by_line = [
-        line for line in new_cfg.splitlines() if not ignore_config_diff_line(line)
-    ]
-
-    diff = ""
-    for line in difflib.unified_diff(
-        old_cfg_line_by_line, new_cfg_line_by_line, lineterm=""
-    ):
-        line = line.strip()
-        if len(line) > 0:
-            diff += line + "\n"
-    return diff
-
-
-def run_preconfig_check(task: Task, snmp_config_commands: List[str]) -> Result:
-    target_host = task.host
-    platform = target_host.platform
-
-    test_inventory_config = "testbed/nornir.yaml"
-
-    target_cfg_file = "cfg/{}.cfg".format(target_host.name)
-    with open(target_cfg_file, "r") as f:
-        target_config_lines = f.readlines()
-        # remove \n from each line
-        target_config_lines = [line.rstrip("\n") for line in target_config_lines]
-
-    # 1. generate sanitized config
-    sanitized_config = sanitize_config(platform, target_config_lines)
-    # 2. get test device
-    test_nr = (
-        InitNornir(config_file=test_inventory_config)
-        .filter(platform=platform)
-        .filter(F(groups__contains="conftest"))
-    )
-    first_hostname = list(test_nr.inventory.hosts.keys())[0]
-    test_device = test_nr.inventory.hosts[first_hostname]
-
-    print("Test config on {}".format(test_device.name))
-
-    # 3. restore test device config
-    test_device_init_config = "testbed/cfg/{}.cfg".format(test_device.name)
-
-    # 4. use NAPALM to load init config and sanitize config
-    test_con = test_device.get_connection(NAPALM_CONNECTION_NAME, test_nr.config)
-    test_con.load_replace_candidate(filename=test_device_init_config)
-    test_con.commit_config()
-    test_con.load_merge_candidate(config="\n".join(sanitized_config))
-    test_con.commit_config()
-
-    pre_execute_config = test_con.get_config()["running"]
-
-    # 5. test run the confi
-    netmiko_test_con = test_device.get_connection(
-        NETMIKO_CONNECTION_NAME, test_nr.config
-    )
-    config_result = netmiko_test_con.send_config_set(snmp_config_commands)
-
-    if "Invalid" in config_result:
-        return Result(
-            host=task.host,
-            result=f"Invalid configuration detected: {config_result}",
-            changed=False,
-            failed=True,
-        )
-
-    if platform == "iosxr":
-        netmiko_test_con.commit()
-
-    afrer_execute_config = test_con.get_config()["running"]
-
-    config_dff = diff_cfg(pre_execute_config, afrer_execute_config)
-
-    return Result(
-        host=task.host,
-        result=config_result,
-        diff=config_dff,
-        changed=True,
-    )
 
 
 def apply_netmiko_config(netmiko_connection, config_sets: List[str]):

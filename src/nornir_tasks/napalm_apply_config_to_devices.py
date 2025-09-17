@@ -3,6 +3,8 @@ from typing import Optional
 from nornir.core.task import Result, Task
 from nornir_napalm.plugins.connections import CONNECTION_NAME
 
+from infra_auto.testbed.execute import run_preconfig_check
+
 
 def check_config_hostname(
     task: Task, config_path: str, dry_run: Optional[bool] = None
@@ -66,7 +68,9 @@ def napalm_apply_config_to_devices(
             changed = False
             result = f"No config changes detected for {task.host.name}"
 
-        if task.is_dry_run(dry_run):
+        run_preconfig_check(task, extra_commands=[])
+
+        if task.is_dry_run(dry_run) and diff:
             return Result(host=task.host, changed=changed, diff=diff, result=result)
 
         if diff:
