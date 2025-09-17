@@ -7,3 +7,10 @@ __pycache__/
 *.pyd
 
 *.egg-info/
+
+.vscode/
+cfg/
+inventory/
+testbed/
+*.log
+data/
