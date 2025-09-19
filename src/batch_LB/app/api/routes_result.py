@@ -1,30 +1,25 @@
-from fastapi import APIRouter, HTTPException
-from app.services.queue import get_ticket, delete_ticket, get_queue_status, is_task_completed
+from fastapi import APIRouter, HTTPException, Request
 
 router = APIRouter()
 
-
-@router.get("/{ticket_id}")
-def get_result(ticket_id: str):
+@router.get("/{id}")
+def get_result(id: str, request: Request):
     """
     取得 ticket 狀態和結果
     如果任務還在執行中，立即回復 false (running 狀態)
     如果任務已完成，回復 true 和結果
     """
-    print(f"[get_result] Looking for ticket: {ticket_id}")
-    t = get_ticket(ticket_id)
+    ticket_manager = request.app.state.ticket_manager
+    t = ticket_manager.get_ticket(id)
     if not t:
-        print(f"[get_result] Ticket {ticket_id} not found")
-        raise HTTPException(status_code=404, detail="ticket not found")
-
-    print(f"[get_result] Found ticket: {t.ticket_id}, status: {t.status}")
+        raise HTTPException(status_code=404, detail=f"Ticket {id} not found")
 
     # 取得佇列狀態
-    queue_status = get_queue_status()
-    position = queue_status["queue_position"].get(ticket_id, 0)
+    queue_status = ticket_manager.get_queue_status()
+    position = queue_status["queue_position"].get(id, 0)
 
     response = {
-        "ticket_id": t.ticket_id,
+        "id": t.id,
         "status": t.status,
         "vendor": t.vendor,
         "module": t.module,
@@ -48,18 +43,19 @@ def get_result(ticket_id: str):
         response["message"] = "Ticket completed successfully"
         response["result_data"] = t.result_data
         response["completed"] = True  # 任務完成，回復 True
-        delete_ticket(ticket_id)  # 自動刪除已完成的 ticket
+        ticket_manager.delete_ticket(id)  # 自動刪除已完成的 ticket
 
     elif t.status == "failed":
         response["message"] = "Ticket processing failed"
         response["result_data"] = t.result_data
         response["completed"] = True  # 任務結束（雖然失敗），回復 True
-        delete_ticket(ticket_id)  # 自動刪除已完成的 ticket
+        ticket_manager.delete_ticket(id)  # 自動刪除已完成的 ticket
 
     return response
 
 
 @router.get("/")
-def get_queue_info():
+def get_queue_info(request: Request):
     """取得整體佇列狀態"""
-    return get_queue_status()
+    ticket_manager = request.app.state.ticket_manager
+    return ticket_manager.get_queue_status()

@@ -12,7 +12,7 @@ class TicketStatus(str, Enum):
 
 
 class Ticket(BaseModel):
-    ticket_id: str
+    id: str
     version: str
     vendor: str
     module: str

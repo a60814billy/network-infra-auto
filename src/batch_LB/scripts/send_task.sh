@@ -13,7 +13,7 @@ FILENAME="cfg/tndo-c8k-1.cfg"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(realpath "$SCRIPT_DIR/../../..")"
-echo "🏠 專案根目錄：$ROOT_DIR"
+# echo "🏠 專案根目錄：$ROOT_DIR"
 CFG_PATH="$ROOT_DIR/$FILENAME"
 
 # === 檢查檔案 ===
@@ -22,22 +22,20 @@ if [[ ! -r "$CFG_PATH" ]]; then
   exit 1
 fi
 
-echo "➡️  送出請求：$BASE/request/$VERSION/$VENDOR/$MODULE"
-echo "📄 上傳檔案：$(realpath "$CFG_PATH")"
+# echo "➡️  送出請求：$BASE/request/$VERSION/$VENDOR/$MODULE"
+# echo "📄 上傳檔案：$(realpath "$CFG_PATH")"
 
 # === 送出檔案（multipart/form-data）===
-RESP="$(curl -fS -X POST "$BASE/request/$VERSION/$VENDOR/$MODULE" \
+RESP="$(curl -sS -f -X POST "$BASE/request/$VERSION/$VENDOR/$MODULE" \
   -F "file=@${CFG_PATH}")"
 
-echo
-echo "✅ 伺服器回應："
-echo "$RESP" | jq .
-# 若系統有 jq，順便抓出 ticket_id 並提供查詢指令
+# echo
+# echo "✅ 伺服器回應："
+# echo "$RESP" | jq .
 if command -v jq >/dev/null 2>&1; then
-  TID="$(echo "$RESP" | jq -r '.ticket_id // empty')"
+  TID="$(echo "$RESP" | jq -r '.id // empty')"
   if [[ -n "${TID:-}" ]]; then
-    echo
-    echo "🔎 查詢結果："
-    echo "  curl \"$BASE/result/$TID\" | jq ."
+    # echo "🔎 查詢結果："
+    echo "curl \"$BASE/result/$TID\" | jq ."
   fi
 fi
