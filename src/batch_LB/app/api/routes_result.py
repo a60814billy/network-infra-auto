@@ -22,7 +22,7 @@ def get_result(id: str, request: Request):
         "id": ticket.id,
         "status": ticket.status,
         "vendor": ticket.vendor,
-        "module": ticket.module,
+        "model": ticket.model,
         "enqueued_at": ticket.enqueued_at,
         "started_at": ticket.started_at,
         "completed_at": ticket.completed_at,

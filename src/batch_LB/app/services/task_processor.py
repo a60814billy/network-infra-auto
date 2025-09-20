@@ -25,7 +25,7 @@ class TaskProcessor:
             # 模擬任務處理時間（實際上這裡會是真正的業務邏輯）
             await asyncio.sleep(5)  # 模擬耗時任務
             success = True
-            result_data = f"Processed {ticket.vendor} - {ticket.module}"
+            result_data = f"Processed {ticket.vendor} - {ticket.model}"
             # 通知 TicketManager 任務完成
             self.completion_callback(ticket.id, result_data, success)
 
@@ -41,7 +41,7 @@ class TaskProcessor:
         Args:
             ticket_id: 票據ID
             vendor: 廠商
-            module: 模組
+            model: 模組
             config_path: 配置檔案路徑
         """
         def run_in_thread():

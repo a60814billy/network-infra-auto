@@ -15,7 +15,7 @@ class Ticket(BaseModel):
     id: str
     version: str
     vendor: str
-    module: str
+    model: str
     status: TicketStatus = TicketStatus.queued
     testing_config_path: str = ""
     enqueued_at: datetime = Field(default_factory=datetime.utcnow)

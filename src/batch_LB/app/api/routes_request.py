@@ -5,8 +5,8 @@ from app.config import MAX_UPLOAD_SIZE, VALID_MACHINES
 
 router = APIRouter()
 
-@router.post("/{version}/{vendor}/{module}", summary="Create request (file upload)")
-async def create_request(version: str, vendor: str, module: str, request: Request, file: UploadFile = File(...)):
+@router.post("/{version}/{vendor}/{model}", summary="Create request (file upload)")
+async def create_request(version: str, vendor: str, model: str, request: Request, file: UploadFile = File(...)):
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="file is empty")
@@ -15,13 +15,13 @@ async def create_request(version: str, vendor: str, module: str, request: Reques
         raise HTTPException(
             status_code=413, detail=f"file too large (>{MAX_UPLOAD_SIZE} bytes)")
 
-    if vendor not in VALID_MACHINES or module not in VALID_MACHINES[vendor]:
+    if vendor not in VALID_MACHINES or model not in VALID_MACHINES[vendor]:
         raise HTTPException(
-            status_code=400, detail=f"Unsupported vendor/module combination: {vendor}/{module}")
+            status_code=400, detail=f"Unsupported vendor/model combination: {vendor}/{model}")
     
     ticket_manager = request.app.state.ticket_manager
     
-    ticket = ticket_manager.process_ticket(version, vendor, module, data)
+    ticket = ticket_manager.process_ticket(version, vendor, model, data)
     if not ticket:
         raise HTTPException(status_code=500, detail="Failed when processing the ticket")
     

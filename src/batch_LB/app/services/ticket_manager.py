@@ -43,8 +43,8 @@ class TicketManager:
         """
         ticket_list = list[Ticket]()
         for vendor in VALID_MACHINES:
-            for module in VALID_MACHINES[vendor]:
-                ticket_folder = UPLOAD_DIR / vendor / module
+            for model in VALID_MACHINES[vendor]:
+                ticket_folder = UPLOAD_DIR / vendor / model
                 for ticket_file in ticket_folder.glob("*.txt"):
                     print(f"[TicketManager] Reloading ticket from {ticket_file}")
                     ticket_id = ticket_file.stem
@@ -53,8 +53,8 @@ class TicketManager:
                             id=ticket_id,
                             version="v1",
                             vendor=vendor,
-                            module=module,
-                            testing_config_path=f"{UPLOAD_DIR}/{vendor}/{module}/{ticket_id}.txt",
+                            model=model,
+                            testing_config_path=f"{UPLOAD_DIR}/{vendor}/{model}/{ticket_id}.txt",
                             status=TicketStatus.queued,
                         )
                     self._tickets_db[ticket_id] = ticket
@@ -63,13 +63,13 @@ class TicketManager:
                         
     # ===== 票據 CRUD 操作 =====
 
-    def _create_ticket(self, version: str, vendor: str, module: str, data: bytes) -> Ticket:
+    def _create_ticket(self, version: str, vendor: str, model: str, data: bytes) -> Ticket:
         """
         創建票據並加入佇列
         
         Args:
             vendor: 廠商
-            module: 模組
+            model: 模組
             data: 檔案資料
         """
         id = str(uuid4())
@@ -77,13 +77,13 @@ class TicketManager:
             id=id,
             version=version,
             vendor=vendor,
-            module=module,
-            testing_config_path=f"{UPLOAD_DIR}/{vendor}/{module}/{id}.txt",
+            model=model,
+            testing_config_path=f"{UPLOAD_DIR}/{vendor}/{model}/{id}.txt",
             status=TicketStatus.queued,
         )
 
         # 儲存檔案和票據資料
-        ticket_dir = UPLOAD_DIR / ticket.vendor / ticket.module
+        ticket_dir = UPLOAD_DIR / ticket.vendor / ticket.model
         ticket_dir.mkdir(parents=True, exist_ok=True)
 
         with open(ticket.testing_config_path, "wb") as f:
@@ -241,8 +241,8 @@ class TicketManager:
         self.task_processor.start_background_task(ticket)
         return True
     
-    def process_ticket(self, version: str, vendor: str, module: str, data: bytes) -> Optional[Ticket]:
-        ticket = self._create_ticket(version, vendor, module, data)
+    def process_ticket(self, version: str, vendor: str, model: str, data: bytes) -> Optional[Ticket]:
+        ticket = self._create_ticket(version, vendor, model, data)
         
         if not self._enqueue_ticket(ticket):
             return None
