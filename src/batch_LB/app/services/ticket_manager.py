@@ -255,8 +255,7 @@ class TicketManager:
         if not self._enqueue_ticket(ticket):
             return None
         
-        if not self._consume_ticket():
-            return None
+        self._consume_ticket()
         return ticket
     
     # ===== 狀態查詢 =====

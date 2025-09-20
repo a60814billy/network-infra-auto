@@ -36,7 +36,7 @@ def get_result(id: str, request: Request):
         response["completed"] = False
 
     elif ticket.status == "running":
-        response["message"] = f"Ticket is running on {ticket.machine_id}"
+        response["message"] = f"Ticket is running on {ticket.machine_ip}"
         response["completed"] = False  # 還在執行中，立即回復 False
 
     elif ticket.status == "completed":

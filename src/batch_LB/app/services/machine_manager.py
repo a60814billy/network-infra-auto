@@ -119,4 +119,8 @@ class MachineManager:
         Returns:
             int: 執行中的票據數量
         """
-        return sum(1 for ticket_id in self._machines.values() if ticket_id is not None)
+        count = 0
+        for machine in self._machines.values():
+            if machine.ticket_id is not None:
+                count += 1
+        return count
