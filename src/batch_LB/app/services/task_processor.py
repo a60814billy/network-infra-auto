@@ -23,19 +23,9 @@ class TaskProcessor:
         """
         try:
             # 模擬任務處理時間（實際上這裡會是真正的業務邏輯）
-            await asyncio.sleep(10)  # 模擬 10 秒的處理時間
-
-            # 模擬 80% 成功率
-            import random
-            success = random.random() < 0.8
-
-            if success:
-                result_data = f"Task {ticket.id} completed successfully on {ticket.vendor}/{ticket.module}"
-                print(f"[TaskProcessor] Task {ticket.id} completed successfully")
-            else:
-                result_data = f"Task {ticket.id} failed during processing"
-                print(f"[TaskProcessor] Task {ticket.id} failed")
-
+            await asyncio.sleep(5)  # 模擬耗時任務
+            success = True
+            result_data = f"Processed {ticket.vendor} - {ticket.module}"
             # 通知 TicketManager 任務完成
             self.completion_callback(ticket.id, result_data, success)
 

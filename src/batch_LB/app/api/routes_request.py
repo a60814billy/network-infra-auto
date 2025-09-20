@@ -20,17 +20,15 @@ async def create_request(version: str, vendor: str, module: str, request: Reques
             status_code=400, detail=f"Unsupported vendor/module combination: {vendor}/{module}")
     
     ticket_manager = request.app.state.ticket_manager
-    # 創建票據並加入佇列
-    ticket = ticket_manager.create_ticket(version, vendor, module, data)
-    ticket_manager.enqueue_ticket(ticket)
-
-    # 嘗試處理佇列（分配空閒機器）
-    is_processed = ticket_manager.consume_ticket()
-    if is_processed:
-        ticket.status = TicketStatus.running
-
-    return {
+    
+    ticket = ticket_manager.process_ticket(version, vendor, module, data)
+    if not ticket:
+        raise HTTPException(status_code=500, detail="Failed when processing the ticket")
+    
+    response = {
         "id": ticket.id,
         "status": ticket.status,
         "message": f"Request accepted and {'started processing' if ticket.status == TicketStatus.running else 'queued'}."
     }
+
+    return response

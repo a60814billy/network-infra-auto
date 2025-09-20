@@ -10,8 +10,8 @@ def get_result(id: str, request: Request):
     如果任務已完成，回復 true 和結果
     """
     ticket_manager = request.app.state.ticket_manager
-    t = ticket_manager.get_ticket(id)
-    if not t:
+    ticket = ticket_manager.get_ticket(id)
+    if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket {id} not found")
 
     # 取得佇列狀態
@@ -19,35 +19,35 @@ def get_result(id: str, request: Request):
     position = queue_status["queue_position"].get(id, 0)
 
     response = {
-        "id": t.id,
-        "status": t.status,
-        "vendor": t.vendor,
-        "module": t.module,
-        "enqueued_at": t.enqueued_at,
-        "started_at": t.started_at,
-        "completed_at": t.completed_at,
-        "machine_id": t.machine_id,
+        "id": ticket.id,
+        "status": ticket.status,
+        "vendor": ticket.vendor,
+        "module": ticket.module,
+        "enqueued_at": ticket.enqueued_at,
+        "started_at": ticket.started_at,
+        "completed_at": ticket.completed_at,
+        "machine_id": ticket.machine_id,
         "completed": False,  # 預設為 False
     }
 
-    if t.status == "queued":
+    if ticket.status == "queued":
         response["message"] = f"Ticket is in queue at position {position}"
         response["position"] = position
         response["completed"] = False
 
-    elif t.status == "running":
-        response["message"] = f"Ticket is running on {t.machine_id}"
+    elif ticket.status == "running":
+        response["message"] = f"Ticket is running on {ticket.machine_id}"
         response["completed"] = False  # 還在執行中，立即回復 False
 
-    elif t.status == "completed":
+    elif ticket.status == "completed":
         response["message"] = "Ticket completed successfully"
-        response["result_data"] = t.result_data
+        response["result_data"] = ticket.result_data
         response["completed"] = True  # 任務完成，回復 True
         ticket_manager.delete_ticket(id)  # 自動刪除已完成的 ticket
 
-    elif t.status == "failed":
+    elif ticket.status == "failed":
         response["message"] = "Ticket processing failed"
-        response["result_data"] = t.result_data
+        response["result_data"] = ticket.result_data
         response["completed"] = True  # 任務結束（雖然失敗），回復 True
         ticket_manager.delete_ticket(id)  # 自動刪除已完成的 ticket
 

@@ -26,18 +26,18 @@ class TicketManager:
         self.machine_manager = MachineManager()
         
         # 初始化 TaskProcessor，傳入完成回調函數
-        self.task_processor = TaskProcessor(completion_callback=self.complete_ticket)
+        self.task_processor = TaskProcessor(completion_callback=self._complete_ticket)
         
-        unprocess_tickets = self.reload_tickets()
+        unprocess_tickets = self._reload_tickets()
         if not unprocess_tickets:
             return
         
         for ticket in unprocess_tickets:
-            self.enqueue_ticket(ticket)
-            self.consume_ticket()
+            self._enqueue_ticket(ticket)
+            self._consume_ticket()
         print(f"[TicketManager] Reloaded {len(unprocess_tickets)} unprocessed tickets from storage.")
 
-    def reload_tickets(self) -> list[Ticket]:
+    def _reload_tickets(self) -> list[Ticket]:
         """
         重新載入所有未處理的票據（queued 狀態）
         """
@@ -63,7 +63,7 @@ class TicketManager:
                         
     # ===== 票據 CRUD 操作 =====
 
-    def create_ticket(self, version: str, vendor: str, module: str, data: bytes, is_save: bool = True) -> Ticket:
+    def _create_ticket(self, version: str, vendor: str, module: str, data: bytes) -> Ticket:
         """
         創建票據並加入佇列
         
@@ -83,19 +83,18 @@ class TicketManager:
         )
 
         # 儲存檔案和票據資料
-        if is_save:
-            ticket_dir = UPLOAD_DIR / ticket.vendor / ticket.module
-            ticket_dir.mkdir(parents=True, exist_ok=True)
+        ticket_dir = UPLOAD_DIR / ticket.vendor / ticket.module
+        ticket_dir.mkdir(parents=True, exist_ok=True)
 
-            with open(ticket.testing_config_path, "wb") as f:
-                f.write(data)
+        with open(ticket.testing_config_path, "wb") as f:
+            f.write(data)
             
         self._tickets_db[id] = ticket
         
         print(f"[TicketManager] Created ticket: {ticket.id}")
         return ticket
     
-    def enqueue_ticket(self, ticket: Ticket) -> bool:
+    def _enqueue_ticket(self, ticket: Ticket) -> bool:
         """
         將票據加入佇列
         
@@ -128,7 +127,7 @@ class TicketManager:
         """
         return self._tickets_db.get(id)
     
-    def update_ticket(self, id: str, **kwargs) -> bool:
+    def _update_ticket(self, id: str, **kwargs) -> bool:
         """
         更新票據資訊
         
@@ -170,9 +169,9 @@ class TicketManager:
         # 從記憶體中移除
         self._tickets_db.pop(id, None)
     
-    def complete_ticket(self, id: str, result_data: Optional[str] = None, success: bool = True) -> None:
+    def _complete_ticket(self, id: str, result_data: Optional[str] = None, success: bool = True) -> None:
         """
-        完成票據處理（由 TaskProcessor 回調）
+        完成票據處理
         
         Args:
             id: 票據ID
@@ -199,7 +198,7 @@ class TicketManager:
 
         # 更新狀態
         status = TicketStatus.completed if success else TicketStatus.failed
-        self.update_ticket(
+        self._update_ticket(
             id,
             status=status,
             completed_at=datetime.utcnow(),
@@ -208,11 +207,11 @@ class TicketManager:
 
         print(f"curl \"http://127.0.0.1:8000/result/{id}\" | jq .")
         
-        self.consume_ticket()  # 嘗試處理下一個票據
+        self._consume_ticket()  # 嘗試處理下一個票據
     
     # ===== 佇列處理邏輯 =====
     
-    def consume_ticket(self) -> bool:
+    def _consume_ticket(self) -> bool:
         """
         處理佇列中的票據
         """
@@ -231,7 +230,7 @@ class TicketManager:
             return False
         
         # 更新票據狀態
-        self.update_ticket(
+        self._update_ticket(
             ticket.id,
             status=TicketStatus.running,
             started_at=datetime.utcnow(),
@@ -241,6 +240,16 @@ class TicketManager:
         # 使用 TaskProcessor 啟動背景任務
         self.task_processor.start_background_task(ticket)
         return True
+    
+    def process_ticket(self, version: str, vendor: str, module: str, data: bytes) -> Optional[Ticket]:
+        ticket = self._create_ticket(version, vendor, module, data)
+        
+        if not self._enqueue_ticket(ticket):
+            return None
+        
+        if not self._consume_ticket():
+            return None
+        return ticket
     
     # ===== 狀態查詢 =====
     
