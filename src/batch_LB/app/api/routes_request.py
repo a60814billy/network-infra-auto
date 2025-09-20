@@ -1,9 +1,25 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Request
+import yaml
+from pathlib import Path
 
 from app.models.ticket import TicketStatus
-from app.config import MAX_UPLOAD_SIZE, VALID_MACHINES
+from app.utils import load_config
 
 router = APIRouter()
+
+def _get_valid_machines() -> dict:
+    """從配置中提取 VALID_MACHINES 格式"""
+    config = load_config()
+    valid_machines = {}
+    
+    for vendor, models in config.items():
+        valid_machines[vendor] = list(models.keys())
+    
+    return valid_machines
+
+# 配置常量
+MAX_UPLOAD_SIZE = 2 * 1024 * 1024
+VALID_MACHINES = _get_valid_machines()
 
 @router.post("/{version}/{vendor}/{model}", summary="Create request (file upload)")
 async def create_request(version: str, vendor: str, model: str, request: Request, file: UploadFile = File(...)):

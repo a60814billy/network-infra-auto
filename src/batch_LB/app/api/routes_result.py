@@ -26,7 +26,7 @@ def get_result(id: str, request: Request):
         "enqueued_at": ticket.enqueued_at,
         "started_at": ticket.started_at,
         "completed_at": ticket.completed_at,
-        "machine_id": ticket.machine_id,
+        "machine_ip": ticket.machine_ip,
         "completed": False,  # 預設為 False
     }
 
