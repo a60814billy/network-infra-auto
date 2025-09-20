@@ -13,12 +13,9 @@ from app.services.machine_manager import MachineManager
 class TicketManager:
     """管理票據的類別 - 負責票據的CRUD操作和處理邏輯"""
 
-    def __init__(self, machine_strategy: str = "first_available"):
+    def __init__(self):
         """
         初始化 TicketManager
-        
-        Args:
-            machine_strategy: 機器分配策略 ("first_available" 或 "round_robin")
         """
         self.ticket_queue: Deque[Ticket] = deque()
         
@@ -26,7 +23,7 @@ class TicketManager:
         self._tickets_db: Dict[str, Ticket] = {}
         
         # 機器管理器
-        self.machine_manager = MachineManager(strategy_type=machine_strategy)
+        self.machine_manager = MachineManager()
         
         # 初始化 TaskProcessor，傳入完成回調函數
         self.task_processor = TaskProcessor(completion_callback=self.complete_ticket)
@@ -172,10 +169,6 @@ class TicketManager:
 
         # 從記憶體中移除
         self._tickets_db.pop(id, None)
-        
-        # 如果票據正在執行中，釋放其機器
-        if ticket.machine_id:
-            self.machine_manager.release_machine(ticket.machine_id)
     
     def complete_ticket(self, id: str, result_data: Optional[str] = None, success: bool = True) -> None:
         """
@@ -213,7 +206,7 @@ class TicketManager:
             result_data=result_data
         )
 
-        print(f"[TicketManager] Ticket {id} marked as {'completed' if success else 'failed'}")
+        print(f"curl \"http://127.0.0.1:8000/result/{id}\" | jq .")
         
         self.consume_ticket()  # 嘗試處理下一個票據
     
@@ -246,14 +239,7 @@ class TicketManager:
         )
 
         # 使用 TaskProcessor 啟動背景任務
-        self.task_processor.start_background_task(
-            ticket.id,
-            ticket.vendor,
-            ticket.module,
-            ticket.testing_config_path
-        )
-
-        print(f"[TicketManager] Processing ticket {ticket.id} on {allocated_machine}")
+        self.task_processor.start_background_task(ticket)
         return True
     
     # ===== 狀態查詢 =====
