@@ -1,7 +1,9 @@
 import asyncio
 import threading
 from typing import Callable, Optional
+
 from app.models.ticket import Ticket
+from app.models.machine import Machine
 
 class TaskProcessor:
     def __init__(self, completion_callback: Callable[[Ticket, Optional[str], bool], None]):
@@ -22,6 +24,11 @@ class TaskProcessor:
 
         """
         try:
+            machine = ticket.machine
+            if not machine:
+                raise ValueError(f"Ticket {ticket.id} has no machine allocated")
+            await self.reset_machine(machine)  # 重置機器
+            
             # 模擬任務處理時間（實際上這裡會是真正的業務邏輯）
             await asyncio.sleep(5)  # 模擬耗時任務
             success = True
@@ -34,25 +41,23 @@ class TaskProcessor:
             # 通知 TicketManager 任務失敗
             self.completion_callback(ticket, f"Error: {str(e)}", False)
 
-    def start_background_task(self, ticket: Ticket):
-        """
-        在背景啟動任務
-        
-        Args:
-            ticket_id: 票據ID
-            vendor: 廠商
-            model: 模組
-            config_path: 配置檔案路徑
-        """
-        def run_in_thread():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(
-                    self._execute_task(ticket))
-            finally:
-                loop.close()
 
-        thread = threading.Thread(target=run_in_thread, daemon=True)
-        thread.start()
+    async def reset_machine(self, machine: Machine):
+        """
+        將機器重置為初始狀態
+
+        Args:
+            machine: 機器物件
+        """
+        # Open connection to the machine
+        await asyncio.sleep(1)  # Simulate reset delay
+        print(f"[TaskProcessor] Machine {machine.serial} reset complete.")
+        
+
+    def start_background_task(self, ticket: Ticket):
+        """在背景啟動任務"""
+        def run_task():
+            asyncio.run(self._execute_task(ticket))
+        
+        threading.Thread(target=run_task, daemon=True).start()
         print(f"[TaskProcessor] Started background task for {ticket.id}")
