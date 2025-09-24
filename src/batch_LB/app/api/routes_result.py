@@ -12,7 +12,7 @@ def get_result(id: str, request: Request):
     ticket_manager = request.app.state.ticket_manager
     ticket = ticket_manager.get_ticket(id)
     if not ticket:
-        raise HTTPException(status_code=404, detail=f"Ticket {id} not found")
+        return HTTPException(status_code=404, detail=f"Ticket {id} not found")
 
     # 取得佇列狀態
     queue_status = ticket_manager.get_queue_status()

@@ -42,27 +42,29 @@ class MachineManager:
                         )
                         machines[serial] = machine
         return machines
-        
-        
-    def _get_available_machines(self, vendor: str, model: str) -> List[Machine]:
+
+
+    def _get_available_machines(self, vendor: str, model: str, version: str) -> List[Machine]:
         """取得空閒的機器列表"""
         available = []
         for machine in self._machines.values():
-            if machine.ticket_id is None and machine.vendor == vendor and machine.model == model:
+            if machine.ticket_id is None and machine.vendor == vendor and machine.model == model and machine.version == version:
                 available.append(machine)
         return available
 
-    def allocate_machine(self, ticket_id: str, vendor: str, model: str) -> Optional[Machine]:
+    def allocate_machine(self, ticket_id: str, vendor: str, model: str, version: str) -> Optional[Machine]:
         """
         為票據分配機器
         
         Args:
             ticket_id: 票據ID
+            vendor: 供應商
+            model: 型號
             
         Returns:
-            Optional[str]: 分配的機器ID，如果無可用機器則返回 None
+            Optional[Machine]: 分配的機器，如果無可用機器則返回 None
         """
-        available_machines = self._get_available_machines(vendor, model)
+        available_machines = self._get_available_machines(vendor, model, version)
         if not available_machines:
             print(f"[MachineManager] No available machines for ticket: {ticket_id}")
             return None

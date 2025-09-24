@@ -1,4 +1,5 @@
 import os
+import yaml
 from typing import Dict, Optional, Deque
 from collections import deque
 from datetime import datetime
@@ -6,7 +7,6 @@ from uuid import uuid4
 from pathlib import Path
 
 from app.models.ticket import Ticket, TicketStatus
-from app.models.machine import Machine
 from app.services.task_processor import TaskProcessor
 from app.services.machine_manager import MachineManager
 from app.utils import load_device
@@ -20,7 +20,9 @@ class TicketManager:
         初始化 TicketManager
         """
         # 載入配置
-        self.UPLOAD_DIR = Path("./data/tickets")
+        self.CONFIG_PATH = Path(__file__).parent.parent.parent / "config.yaml"
+
+        self.TICKET_PATH = Path(yaml.safe_load(open(self.CONFIG_PATH, 'r'))["TICKET_PATH"])
         
         self._ticket_queue: Deque[Ticket] = deque()
         
@@ -41,7 +43,7 @@ class TicketManager:
             self._enqueue_ticket(ticket)
             self._consume_ticket()
         print(f"[TicketManager] Reloaded {len(unprocess_tickets)} unprocessed tickets from storage.")
-
+    
     def _reload_tickets(self) -> list[Ticket]:
         """
         重新載入所有在檔案中未處理的票據
@@ -58,7 +60,7 @@ class TicketManager:
                 if not isinstance(versions, dict):
                     continue
                 for version in versions.keys():
-                    ticket_folder = self.UPLOAD_DIR / vendor / model / version
+                    ticket_folder = self.TICKET_PATH / vendor / model / version
                     for ticket_file in ticket_folder.glob("*.txt"):
                         print(f"[TicketManager] Reloading ticket from {ticket_file}")
                         ticket_id = ticket_file.stem
@@ -68,7 +70,7 @@ class TicketManager:
                                 version=version,
                                 vendor=vendor,
                                 model=model,
-                                testing_config_path=f"{self.UPLOAD_DIR}/{vendor}/{model}/{version}/{ticket_id}.txt",
+                                testing_config_path=f"{self.TICKET_PATH}/{vendor}/{model}/{version}/{ticket_id}.txt",
                                 status=TicketStatus.queued,
                             )
                         self._tickets_db[ticket_id] = ticket
@@ -93,12 +95,12 @@ class TicketManager:
             version=version,
             vendor=vendor,
             model=model,
-            testing_config_path=f"{self.UPLOAD_DIR}/{vendor}/{model}/{version}/{id}.txt",
+            testing_config_path=f"{self.TICKET_PATH}/{vendor}/{model}/{version}/{id}.txt",
             status=TicketStatus.queued,
         )
 
         # 儲存檔案和票據資料
-        ticket_dir = self.UPLOAD_DIR / ticket.vendor / ticket.model / ticket.version
+        ticket_dir = self.TICKET_PATH / ticket.vendor / ticket.model / ticket.version
         ticket_dir.mkdir(parents=True, exist_ok=True)
 
         with open(ticket.testing_config_path, "wb") as f:
@@ -201,7 +203,7 @@ class TicketManager:
         
         # 使用機器管理器分配機器
         ticket = self._ticket_queue.popleft()
-        allocated_machine = self.machine_manager.allocate_machine(ticket.id, ticket.vendor, ticket.model)
+        allocated_machine = self.machine_manager.allocate_machine(ticket.id, ticket.vendor, ticket.model, ticket.version)
         
         if not allocated_machine:
             # 如果沒有可用機器，將票據放回佇列前端
