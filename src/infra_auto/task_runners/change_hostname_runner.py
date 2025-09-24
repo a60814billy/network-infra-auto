@@ -21,6 +21,8 @@ class ChangeHostnameTaskRunner:
         # build old/new hostname mapping
         self._mapping = {}
 
+        self.hosts_yaml_backup = None
+
         for host in hosts:
             self._mapping[host["host"]] = host["new"]
 
@@ -45,6 +47,7 @@ class ChangeHostnameTaskRunner:
             hosts_content = hosts_file.read()
 
         old_content = hosts_content
+        self.hosts_yaml_backup = old_content
 
         for old_host, new_host in self._mapping.items():
             # use regex to replace host
@@ -68,6 +71,11 @@ class ChangeHostnameTaskRunner:
 
         with open("./inventory/hosts.yaml", "w") as hosts_file:
             hosts_file.write(hosts_content)
+    
+    def _rollback_hosts_yaml(self):
+        if self.hosts_yaml_backup is not None:
+            with open("./inventory/hosts.yaml", "w") as hosts_file:
+                hosts_file.write(self.hosts_yaml_backup)
 
     def _change_cfg_filename(self, dry_run: bool = False):
         for old_host, new_host in self._mapping.items():
@@ -75,6 +83,10 @@ class ChangeHostnameTaskRunner:
                 print(f"rename {old_host}.cfg to {new_host}.cfg")
             else:
                 os.rename(f"./cfg/{old_host}.cfg", f"./cfg/{new_host}.cfg")
+
+    def _rollback_cfg_filename(self):
+        for old_host, new_host in self._mapping.items():
+            os.rename(f"./cfg/{new_host}.cfg", f"./cfg/{old_host}.cfg")
 
     def _run_change_hostname_task(self):
         mapping = self._mapping
@@ -95,6 +107,7 @@ class ChangeHostnameTaskRunner:
             filter_func=lambda host: host.name in self._old_hosts
         ).run(task=change_hostname)
         print_result(result)
+        return result
 
     def _run_sync_from_task(self):
         nr = InitNornir(config_file="nornir.yaml")
@@ -120,6 +133,13 @@ class ChangeHostnameTaskRunner:
 
             if not dry_run:
                 # 3. change all config,
-                self._run_change_hostname_task()
+                result = self._run_change_hostname_task()
+                # if result has any failed, restore hosts.yaml
+                if result.failed:
+                    print("Some tasks failed, rolling back changes...")
+                    self._rollback_hosts_yaml()
+                    self._rollback_cfg_filename()
+                    print("Rollback completed.")
+                    return
                 # 4. use new config to run sync from change devices
                 self._run_sync_from_task()
