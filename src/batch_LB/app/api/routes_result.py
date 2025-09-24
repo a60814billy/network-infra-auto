@@ -27,7 +27,11 @@ def get_result(id: str, request: Request):
         "enqueued_at": ticket.enqueued_at,
         "started_at": ticket.started_at,
         "completed_at": ticket.completed_at,
-        "machine": ticket.machine.serial,
+        "machine": {
+            "serial": ticket.machine.serial,
+            "ip": ticket.machine.ip,
+            "port": ticket.machine.port
+        } if ticket.machine else None,
         "completed": False,  # 預設為 False
     }
 
@@ -37,7 +41,7 @@ def get_result(id: str, request: Request):
         response["completed"] = False
 
     elif ticket.status == "running":
-        response["message"] = f"Ticket is running on {ticket.machine_id}"
+        response["message"] = f"Ticket is running on {ticket.machine.serial if ticket.machine else 'unknown machine'}"
         response["completed"] = False  # 還在執行中，立即回復 False
 
     elif ticket.status == "completed":
