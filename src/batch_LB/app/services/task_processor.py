@@ -27,8 +27,9 @@ class TaskProcessor:
             machine = ticket.machine
             if not machine:
                 raise ValueError(f"Ticket {ticket.id} has no machine allocated")
-            await self.reset_machine(machine)  # 重置機器
-            
+            reset_success = await self.reset_machine(machine)  # 重置機器
+            if not reset_success:
+                raise RuntimeError(f"Failed to reset machine {machine.serial} for ticket {ticket.id}")
             # 模擬任務處理時間（實際上這裡會是真正的業務邏輯）
             await asyncio.sleep(5)  # 模擬耗時任務
             success = True
@@ -42,7 +43,7 @@ class TaskProcessor:
             self.completion_callback(ticket, f"Error: {str(e)}", False)
 
 
-    async def reset_machine(self, machine: Machine):
+    async def reset_machine(self, machine: Machine) -> bool:
         """
         將機器重置為初始狀態
 
@@ -50,9 +51,11 @@ class TaskProcessor:
             machine: 機器物件
         """
         # Open connection to the machine
+        # add lock for thread safety if needed
         await asyncio.sleep(1)  # Simulate reset delay
-        print(f"[TaskProcessor] Machine {machine.serial} reset complete.")
         
+        print(f"[TaskProcessor] Machine {machine.serial} reset complete.")
+        return True
 
     def start_background_task(self, ticket: Ticket):
         """在背景啟動任務"""

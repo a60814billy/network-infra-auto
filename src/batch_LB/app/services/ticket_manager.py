@@ -28,10 +28,10 @@ class TicketManager:
         self._tickets_db: Dict[str, Ticket] = {}
         
         # 機器管理器
-        self._machine_manager = MachineManager()
+        self.machine_manager = MachineManager()
         
         # 初始化 TaskProcessor，傳入完成回調函數
-        self._task_processor = TaskProcessor(completion_callback=self._complete_ticket)
+        self.task_processor = TaskProcessor(completion_callback=self._complete_ticket)
         
         unprocess_tickets = self._reload_tickets()
         if not unprocess_tickets:
@@ -169,12 +169,12 @@ class TicketManager:
             return
         
         # 確認機器確實被分配給這個票據
-        if not self._machine_manager.validate_ticket_machine(ticket.id, ticket.machine.serial):
+        if not self.machine_manager.validate_ticket_machine(ticket.id, ticket.machine.serial):
             print(f"[TicketManager] Machine {ticket.machine.serial} is not allocated to ticket {ticket.id}")
             return
 
         # 釋放機器
-        self._machine_manager.release_machine(ticket.machine)
+        self.machine_manager.release_machine(ticket.machine)
 
         # 更新狀態
         status = TicketStatus.completed if success else TicketStatus.failed
@@ -201,7 +201,7 @@ class TicketManager:
         
         # 使用機器管理器分配機器
         ticket = self._ticket_queue.popleft()
-        allocated_machine = self._machine_manager.allocate_machine(ticket.id, ticket.vendor, ticket.model)
+        allocated_machine = self.machine_manager.allocate_machine(ticket.id, ticket.vendor, ticket.model)
         
         if not allocated_machine:
             # 如果沒有可用機器，將票據放回佇列前端
@@ -218,7 +218,7 @@ class TicketManager:
         )
 
         # 使用 TaskProcessor 啟動背景任務
-        self._task_processor.start_background_task(ticket)
+        self.task_processor.start_background_task(ticket)
         return True
     
     # ===== 公開方法 =====
@@ -277,8 +277,8 @@ class TicketManager:
         
         return {
             "queued_count": len(self._ticket_queue),
-            "running_count": self._machine_manager.get_running_count(),
-            "machines": self._machine_manager.get_machine_status(),
+            "running_count": self.machine_manager.get_running_count(),
+            "machines": self.machine_manager.get_machine_status(),
             "queue_position": {
                 ticket.id: idx + 1
                 for idx, ticket in enumerate(queue_tickets)

@@ -123,6 +123,18 @@ class MachineManager:
         """
         return {serial: machine.ticket_id for serial, machine in self._machines.items()}
 
+    def get_machine_by_serial(self, serial: str) -> Optional[Machine]:
+        """
+        根據序號取得機器
+        
+        Args:
+            serial: 機器序號
+            
+        Returns:
+            Optional[Machine]: 機器物件或 None
+        """
+        return self._machines.get(serial)
+    
     def get_running_count(self) -> int:
         """
         取得正在執行中的票據數量
