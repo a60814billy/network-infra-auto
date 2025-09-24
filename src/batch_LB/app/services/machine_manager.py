@@ -43,12 +43,23 @@ class MachineManager:
                         machines[serial] = machine
         return machines
 
+    def _check_model_supported(self, machine: Machine, vendor: str, model: str, version: str) -> bool:
+        """
+        檢查機器是否支援指定的型號(可用來擴展更多條件)
+        """
+        if machine.vendor != vendor:
+            return False
+        if machine.model != model:
+            return False
+        if machine.version != version:
+            return False
+        return True
 
     def _get_available_machines(self, vendor: str, model: str, version: str) -> List[Machine]:
         """取得空閒的機器列表"""
         available = []
         for machine in self._machines.values():
-            if machine.ticket_id is None and machine.vendor == vendor and machine.model == model and machine.version == version:
+            if machine.ticket_id is None and self._check_model_supported(machine, vendor, model, version):
                 available.append(machine)
         return available
 
@@ -69,7 +80,6 @@ class MachineManager:
             print(f"[MachineManager] No available machines for ticket: {ticket_id}")
             return None
         
-        # 使用第一個可用機器策略
         selected_machine = available_machines[0]
         
         if not selected_machine:
@@ -111,7 +121,7 @@ class MachineManager:
         Returns:
             bool: 是否匹配
         """
-        machine = self._machines.get(machine_serial)
+        machine = self.get_machine_by_serial(machine_serial)
         machine_ticket = machine.ticket_id if machine else None
 
         return machine_ticket == ticket_id
