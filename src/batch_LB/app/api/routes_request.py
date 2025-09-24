@@ -1,15 +1,13 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Request
-import yaml
-from pathlib import Path
 
 from app.models.ticket import TicketStatus
-from app.utils import load_config
+from app.utils import load_device
 
 router = APIRouter()
 
 def _get_valid_machines() -> dict:
     """從配置中提取 VALID_MACHINES 格式"""
-    config = load_config()
+    config = load_device()
     valid_machines = {}
     
     for vendor, models in config.items():
@@ -21,8 +19,8 @@ def _get_valid_machines() -> dict:
 MAX_UPLOAD_SIZE = 2 * 1024 * 1024
 VALID_MACHINES = _get_valid_machines()
 
-@router.post("/{version}/{vendor}/{model}", summary="Create request (file upload)")
-async def create_request(version: str, vendor: str, model: str, request: Request, file: UploadFile = File(...)):
+@router.post("/{vendor}/{model}/{version}", summary="Create request (file upload)")
+async def create_request(vendor: str, model: str, version: str, request: Request, file: UploadFile = File(...)):
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="file is empty")

@@ -3,14 +3,17 @@
 """
 
 from typing import Dict, List, Optional
-from app.utils import load_config
+from app.utils import load_device
 from dataclasses import dataclass
 
 @dataclass
 class Machine:
-    ip: str
     vendor: str
     model: str
+    version: str
+    ip: str
+    port: str
+    serial: str
     ticket_id: Optional[str] = None
 
 class MachineManager:
@@ -23,13 +26,31 @@ class MachineManager:
         self._machines: Dict[str, Machine] = self._load_machines_from_config()
         
     def _load_machines_from_config(self) -> Dict[str, Machine]:
-        config = load_config()
+        config = load_device()
+        if not config:
+            print("[MachineManager] No valid machines found in config.")
+            return {}
         machines: Dict[str, Machine] = {}
         for vendor, models in config.items():
-            for model, details in models.items():
-                ips = details.get("ips", [])
-                for ip in ips:
-                    machines[ip] = Machine(ip=ip, vendor=vendor, model=model)
+            if not isinstance(models, dict):
+                continue
+            for model, versions in models.items():
+                if not isinstance(versions, dict):
+                    continue
+                for version, devices in versions.items():
+                    if not isinstance(devices, list):
+                        continue
+                    for entry in devices:
+                        ip, port, serial = entry
+                        machine = Machine(
+                            vendor=vendor,
+                            model=model,
+                            version=version,
+                            ip=ip,
+                            port=port,
+                            serial=serial,
+                        )
+                        machines[serial] = machine
         return machines
         
         
@@ -64,41 +85,41 @@ class MachineManager:
             return None
         
         # 分配機器
-        self._machines[selected_machine.ip].ticket_id = ticket_id
-        print(f"[MachineManager] Allocated machine: {selected_machine.ip} to ticket: {ticket_id}")
-        return selected_machine.ip
-    
-    def release_machine(self, machine_ip: str) -> bool:
+        self._machines[selected_machine.serial].ticket_id = ticket_id
+        print(f"[MachineManager] Allocated machine: {selected_machine.serial} to ticket: {ticket_id}")
+        return selected_machine.serial
+
+    def release_machine(self, machine_serial: str) -> bool:
         """
         釋放機器
         
         Args:
-            machine_ip: 機器ID
+            machine_serial: 機器ID
             
         Returns:
             bool: 是否成功釋放
         """
-        if machine_ip not in self._machines:
-            print(f"[MachineManager] Machine {machine_ip} not found")
+        if machine_serial not in self._machines:
+            print(f"[MachineManager] Machine {machine_serial} not found")
             return False
 
-        ticket_id = self._machines[machine_ip].ticket_id
-        self._machines[machine_ip].ticket_id = None
-        print(f"[MachineManager] Released machine: {machine_ip} (was processing ticket: {ticket_id})")
+        ticket_id = self._machines[machine_serial].ticket_id
+        self._machines[machine_serial].ticket_id = None
+        print(f"[MachineManager] Released machine: {machine_serial} (was processing ticket: {ticket_id})")
         return True
-    
-    def validate_ticket_machine(self, ticket_id: str, machine_ip: str) -> bool:
+
+    def validate_ticket_machine(self, ticket_id: str, machine_serial: str) -> bool:
         """
         驗證票據確實分配給指定機器
         
         Args:
             ticket_id: 票據ID
-            machine_ip: 機器ID
+            machine_serial: 機器ID
             
         Returns:
             bool: 是否匹配
         """
-        machine = self._machines.get(machine_ip)
+        machine = self._machines.get(machine_serial)
         machine_ticket = machine.ticket_id if machine else None
 
         return machine_ticket == ticket_id
@@ -110,8 +131,8 @@ class MachineManager:
         Returns:
             Dict[str, Optional[str]]: 機器狀態 (None = 空閒, 票據ID = 忙碌)
         """
-        return {ip: machine.ticket_id for ip, machine in self._machines.items()}
-    
+        return {serial: machine.ticket_id for serial, machine in self._machines.items()}
+
     def get_running_count(self) -> int:
         """
         取得正在執行中的票據數量

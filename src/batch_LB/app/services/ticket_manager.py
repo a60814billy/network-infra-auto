@@ -9,7 +9,7 @@ from pathlib import Path
 from app.models.ticket import Ticket, TicketStatus
 from app.services.task_processor import TaskProcessor
 from app.services.machine_manager import MachineManager
-from app.utils import load_config
+from app.utils import load_device
 
 
 class TicketManager:
@@ -47,27 +47,32 @@ class TicketManager:
         重新載入所有在檔案中未處理的票據
         """
         ticket_list = list[Ticket]()
-        valid_machines = load_config()
+        valid_machines = load_device()
         if not valid_machines:
             print("[TicketManager] No valid machines found in config, skipping ticket reload.")
             return ticket_list
-        for vendor in valid_machines:
-            for model in valid_machines[vendor]:
-                ticket_folder = self.UPLOAD_DIR / vendor / model
-                for ticket_file in ticket_folder.glob("*.txt"):
-                    print(f"[TicketManager] Reloading ticket from {ticket_file}")
-                    ticket_id = ticket_file.stem
-                    with open(ticket_file, "r") as f:
-                        ticket = Ticket(
-                            id=ticket_id,
-                            version="v1",
-                            vendor=vendor,
-                            model=model,
-                            testing_config_path=f"{self.UPLOAD_DIR}/{vendor}/{model}/{ticket_id}.txt",
-                            status=TicketStatus.queued,
-                        )
-                    self._tickets_db[ticket_id] = ticket
-                    ticket_list.append(ticket)
+        for vendor, models in valid_machines.items():
+            if not isinstance(models, dict):
+                continue
+            for model, versions in models.items():
+                if not isinstance(versions, dict):
+                    continue
+                for version in versions.keys():
+                    ticket_folder = self.UPLOAD_DIR / vendor / model / version
+                    for ticket_file in ticket_folder.glob("*.txt"):
+                        print(f"[TicketManager] Reloading ticket from {ticket_file}")
+                        ticket_id = ticket_file.stem
+                        with open(ticket_file, "r") as f:
+                            ticket = Ticket(
+                                id=ticket_id,
+                                version=version,
+                                vendor=vendor,
+                                model=model,
+                                testing_config_path=f"{self.UPLOAD_DIR}/{vendor}/{model}/{version}/{ticket_id}.txt",
+                                status=TicketStatus.queued,
+                            )
+                        self._tickets_db[ticket_id] = ticket
+                        ticket_list.append(ticket)
         return ticket_list
                         
     # ===== 票據 CRUD 操作 =====
@@ -87,12 +92,12 @@ class TicketManager:
             version=version,
             vendor=vendor,
             model=model,
-            testing_config_path=f"{self.UPLOAD_DIR}/{vendor}/{model}/{id}.txt",
+            testing_config_path=f"{self.UPLOAD_DIR}/{vendor}/{model}/{version}/{id}.txt",
             status=TicketStatus.queued,
         )
 
         # 儲存檔案和票據資料
-        ticket_dir = self.UPLOAD_DIR / ticket.vendor / ticket.model
+        ticket_dir = self.UPLOAD_DIR / ticket.vendor / ticket.model / ticket.version
         ticket_dir.mkdir(parents=True, exist_ok=True)
 
         with open(ticket.testing_config_path, "wb") as f:
@@ -158,17 +163,17 @@ class TicketManager:
             print(f"[TicketManager] Ticket {ticket.id} not found for completion")
             return
         
-        if not ticket.machine_ip:
+        if not ticket.machine_id:
             print(f"[TicketManager] Ticket {ticket.id} has no machine allocated")
             return
         
         # 確認機器確實被分配給這個票據
-        if not self._machine_manager.validate_ticket_machine(ticket.id, ticket.machine_ip):
-            print(f"[TicketManager] Machine {ticket.machine_ip} is not allocated to ticket {ticket.id}")
+        if not self._machine_manager.validate_ticket_machine(ticket.id, ticket.machine_id):
+            print(f"[TicketManager] Machine {ticket.machine_id} is not allocated to ticket {ticket.id}")
             return
 
         # 釋放機器
-        self._machine_manager.release_machine(ticket.machine_ip)
+        self._machine_manager.release_machine(ticket.machine_id)
 
         # 更新狀態
         status = TicketStatus.completed if success else TicketStatus.failed
@@ -208,7 +213,7 @@ class TicketManager:
             ticket=ticket,
             status=TicketStatus.running,
             started_at=datetime.utcnow(),
-            machine_ip=allocated_machine
+            machine_id=allocated_machine
         )
 
         # 使用 TaskProcessor 啟動背景任務

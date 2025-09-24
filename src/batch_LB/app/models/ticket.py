@@ -21,5 +21,5 @@ class Ticket(BaseModel):
     enqueued_at: datetime = Field(default_factory=datetime.utcnow)
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    machine_ip: Optional[str] = None  # 分配到的機器 ID
+    machine_id: Optional[str] = None  # 分配到的機器 ID
     result_data: Optional[str] = None  # 執行結果

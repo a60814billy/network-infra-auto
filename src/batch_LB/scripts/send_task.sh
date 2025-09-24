@@ -26,7 +26,7 @@ fi
 # echo "📄 上傳檔案：$(realpath "$CFG_PATH")"
 
 # === 送出檔案（multipart/form-data）===
-RESP="$(curl -sS -f -X POST "$BASE/request/$VERSION/$VENDOR/$MODULE" \
+RESP="$(curl -sS -f -X POST "$BASE/request/$VENDOR/$MODULE/$VERSION" \
   -F "file=@${CFG_PATH}")"
 
 # echo
