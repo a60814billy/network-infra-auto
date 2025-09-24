@@ -23,10 +23,11 @@ def get_result(id: str, request: Request):
         "status": ticket.status,
         "vendor": ticket.vendor,
         "model": ticket.model,
+        "version": ticket.version,
         "enqueued_at": ticket.enqueued_at,
         "started_at": ticket.started_at,
         "completed_at": ticket.completed_at,
-        "machine_id": ticket.machine_id,
+        "machine": ticket.machine.serial,
         "completed": False,  # 預設為 False
     }
 

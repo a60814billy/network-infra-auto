@@ -1,5 +1,4 @@
 import os
-import yaml
 from typing import Dict, Optional, Deque
 from collections import deque
 from datetime import datetime
@@ -7,6 +6,7 @@ from uuid import uuid4
 from pathlib import Path
 
 from app.models.ticket import Ticket, TicketStatus
+from app.models.machine import Machine
 from app.services.task_processor import TaskProcessor
 from app.services.machine_manager import MachineManager
 from app.utils import load_device
@@ -82,6 +82,7 @@ class TicketManager:
         創建票據，寫入檔案，並加入票據資料庫
         
         Args:
+            version: 版本
             vendor: 廠商
             model: 模組
             data: 檔案資料
@@ -163,17 +164,17 @@ class TicketManager:
             print(f"[TicketManager] Ticket {ticket.id} not found for completion")
             return
         
-        if not ticket.machine_id:
+        if not ticket.machine:
             print(f"[TicketManager] Ticket {ticket.id} has no machine allocated")
             return
         
         # 確認機器確實被分配給這個票據
-        if not self._machine_manager.validate_ticket_machine(ticket.id, ticket.machine_id):
-            print(f"[TicketManager] Machine {ticket.machine_id} is not allocated to ticket {ticket.id}")
+        if not self._machine_manager.validate_ticket_machine(ticket.id, ticket.machine.serial):
+            print(f"[TicketManager] Machine {ticket.machine.serial} is not allocated to ticket {ticket.id}")
             return
 
         # 釋放機器
-        self._machine_manager.release_machine(ticket.machine_id)
+        self._machine_manager.release_machine(ticket.machine)
 
         # 更新狀態
         status = TicketStatus.completed if success else TicketStatus.failed
@@ -213,7 +214,7 @@ class TicketManager:
             ticket=ticket,
             status=TicketStatus.running,
             started_at=datetime.utcnow(),
-            machine_id=allocated_machine
+            machine=allocated_machine
         )
 
         # 使用 TaskProcessor 啟動背景任務

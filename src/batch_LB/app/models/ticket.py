@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
 
+from app.models.machine import Machine
 
 class TicketStatus(str, Enum):
     queued = "queued"
@@ -21,5 +22,5 @@ class Ticket(BaseModel):
     enqueued_at: datetime = Field(default_factory=datetime.utcnow)
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    machine_id: Optional[str] = None  # 分配到的機器 ID
+    machine: Optional[Machine] = None  # 分配到的機器
     result_data: Optional[str] = None  # 執行結果

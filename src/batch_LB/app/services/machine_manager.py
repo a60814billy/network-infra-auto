@@ -4,17 +4,7 @@
 
 from typing import Dict, List, Optional
 from app.utils import load_device
-from dataclasses import dataclass
-
-@dataclass
-class Machine:
-    vendor: str
-    model: str
-    version: str
-    ip: str
-    port: str
-    serial: str
-    ticket_id: Optional[str] = None
+from app.models.machine import Machine
 
 class MachineManager:
     """機器管理器 - 負責機器分配、釋放和狀態管理"""
@@ -62,7 +52,7 @@ class MachineManager:
                 available.append(machine)
         return available
 
-    def allocate_machine(self, ticket_id: str, vendor: str, model: str) -> Optional[str]:
+    def allocate_machine(self, ticket_id: str, vendor: str, model: str) -> Optional[Machine]:
         """
         為票據分配機器
         
@@ -87,25 +77,25 @@ class MachineManager:
         # 分配機器
         self._machines[selected_machine.serial].ticket_id = ticket_id
         print(f"[MachineManager] Allocated machine: {selected_machine.serial} to ticket: {ticket_id}")
-        return selected_machine.serial
+        return selected_machine
 
-    def release_machine(self, machine_serial: str) -> bool:
+    def release_machine(self, machine: Machine) -> bool:
         """
         釋放機器
         
         Args:
-            machine_serial: 機器ID
+            machine: 機器物件
             
         Returns:
             bool: 是否成功釋放
         """
-        if machine_serial not in self._machines:
-            print(f"[MachineManager] Machine {machine_serial} not found")
+        if machine.serial not in self._machines:
+            print(f"[MachineManager] Machine {machine.serial} not found")
             return False
 
-        ticket_id = self._machines[machine_serial].ticket_id
-        self._machines[machine_serial].ticket_id = None
-        print(f"[MachineManager] Released machine: {machine_serial} (was processing ticket: {ticket_id})")
+        ticket_id = self._machines[machine.serial].ticket_id
+        self._machines[machine.serial].ticket_id = None
+        print(f"[MachineManager] Released machine: {machine.serial} (was processing ticket: {ticket_id})")
         return True
 
     def validate_ticket_machine(self, ticket_id: str, machine_serial: str) -> bool:

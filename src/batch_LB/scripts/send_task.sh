@@ -5,7 +5,7 @@ set -euo pipefail
 BASE="${DISPATCH_BASE:-http://127.0.0.1:8000}"
 
 # 參數：version vendor module cfg_path
-VERSION="${1:-v1}"
+VERSION="${1:-"1.0"}"
 VENDOR="${2:-cisco}"
 MODULE="${3:-c8k}"
 
