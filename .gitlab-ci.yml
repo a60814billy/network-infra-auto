@@ -7,7 +7,7 @@ build-docker-image:
   variables:
     DOCKER_HOST: "unix:///runner/services/docker/docker.sock"
     IMAGE_NAME: "a60814billy/infra-auto"
-    IMAGE_TAG: "latest"
+    IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
   services:
     - docker:24.0.5-dind
   before_script:
