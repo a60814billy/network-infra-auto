@@ -65,13 +65,19 @@ class ChangeHostnameTaskRunner:
                 old_content.splitlines(keepends=True),
                 hosts_content.splitlines(keepends=True),
             )
+
+            # filter diff to only show changes
+            diff = [
+                line for line in diff if line.startswith("+ ") or line.startswith("- ")
+            ]
+
             print("changes of hosts.yaml:")
             print("".join(diff))
             return
 
         with open("./inventory/hosts.yaml", "w") as hosts_file:
             hosts_file.write(hosts_content)
-    
+
     def _rollback_hosts_yaml(self):
         if self.hosts_yaml_backup is not None:
             with open("./inventory/hosts.yaml", "w") as hosts_file:
