@@ -52,7 +52,10 @@ def napalm_apply_config_to_devices(
 
     local_cfg_path = f"cfg/{task.host.name}.cfg"
 
-    task.run(task=check_config_hostname, config_path=local_cfg_path)
+    print("local_cfg_path:", local_cfg_path)
+
+    r = task.run(task=check_config_hostname, config_path=local_cfg_path)
+    print(r.result)
 
     conn = task.host.get_connection(CONNECTION_NAME, task.nornir.config)
 
@@ -61,6 +64,8 @@ def napalm_apply_config_to_devices(
         conn.load_replace_candidate(filename=local_cfg_path)
         diff = conn.compare_config()
 
+        print("Diff:", diff)
+
         if diff:
             changed = True
             result = f"Config changes detected for {task.host.name}"
@@ -68,9 +73,8 @@ def napalm_apply_config_to_devices(
             changed = False
             result = f"No config changes detected for {task.host.name}"
 
-        run_preconfig_check(task, extra_commands=[])
-
         if task.is_dry_run(dry_run) and diff:
+            task.run(task=run_preconfig_check)
             return Result(host=task.host, changed=changed, diff=diff, result=result)
 
         if diff:
