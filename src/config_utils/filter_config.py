@@ -1,8 +1,11 @@
 import re
 from typing import List
+import ipaddress
 
 
-def filter_config(platform: str, config_lines: List[str]) -> List[str]:
+def filter_config(
+    platform: str, config_lines: List[str], testbed_data: dict
+) -> List[str]:
     """
     Filter configuration lines to remove specific commands/blocks based on platform.
 
@@ -14,19 +17,45 @@ def filter_config(platform: str, config_lines: List[str]) -> List[str]:
         Filtered list of configuration lines
     """
     if platform in ["nxos", "nxos_ssh"]:
-        return replace_nxos_config_to_testbed(config_lines)
+        return replace_nxos_config_to_testbed(config_lines, testbed_data)
     elif platform in ["hpe", "comware"]:
         return filter_hpe_config(config_lines)
     else:
         raise ValueError(f"Unsupported platform: {platform}")
 
 
+def combine_ip_subnetmask(ip: str, netmask: str) -> str:
+    """
+    "Combine IP address and subnet mask into CIDR notation.
+
+    Args:
+        ip: IP address as string
+        netmask: Subnet mask as string
+    Returns:
+        CIDR notation string
+
+    Example:
+        combine_ip_subnetmask("192.168.1.1", "255.255.255.0")
+        returns "192.168.1.1/24"
+    """
+    try:
+        interface = ipaddress.ip_interface(f"{ip}/{netmask}")
+        return str(interface.with_prefixlen)
+    except ValueError as e:
+        print(f"Error: Invalid IP or netmask provided - {e}")
+        raise
+
+
 def replace_nxos_config_to_testbed(
     lines: List[str], testbed_data: dict = {}
 ) -> List[str]:
     testbed_hostname = testbed_data.get("hostname", "tndo-n9k-2")
-    mgmt_ip = testbed_data.get("mgmt_ip", "10.192.4.184/24")
+    mgmt_ip = testbed_data.get("mgmt_ip", "10.192.4.184")
+    netmask = testbed_data.get("netmask", "255.255.255.0")
     default_gateway = testbed_data.get("default_gateway", "10.192.4.1")
+
+    mgmt_ip = combine_ip_subnetmask(mgmt_ip, netmask)
+
     filtered_lines = []
     in_block = False
     block_indent = -1

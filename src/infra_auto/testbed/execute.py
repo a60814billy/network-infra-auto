@@ -120,17 +120,6 @@ def run_preconfig_check(task: Task, extra_commands: List[str] = []) -> Result:
     version = target_host.data["version"]
     print("Version:", version)
 
-    target_cfg_file = "cfg/{}.cfg".format(target_host.name)
-    with open(target_cfg_file, "r") as f:
-        target_config_lines = f.readlines()
-        # remove \n from each line
-        target_config_lines = [line.rstrip("\n") for line in target_config_lines]
-
-    # 1. generate sanitized config
-    sanitized_config = filter_config(platform, target_config_lines)
-
-    print("Sanitized config: ", "\n".join(sanitized_config))
-
     # 2. Reserve a test device from the API
     vendor, model = platform_to_vendor_model(platform)
 
@@ -141,7 +130,7 @@ def run_preconfig_check(task: Task, extra_commands: List[str] = []) -> Result:
         if (
             machine.get("vendor") == vendor
             and machine.get("model") == model
-            and machine.get("available") == True
+            and machine.get("status") == "available"
         ):
             available_machine = machine
             break
@@ -172,18 +161,43 @@ def run_preconfig_check(task: Task, extra_commands: List[str] = []) -> Result:
         )
 
     machine_serial = reserved_machine.get("serial")
+    machine_hostname = reserved_machine.get("hostname")
+    machine_mgmt_ip = reserved_machine.get("mgmt_ip")
+    machine_mgmt_netmask = reserved_machine.get("netmask")
+    machine_mgmt_gateway = reserved_machine.get("default_gateway")
+
     print("Reserved machine serial:", machine_serial)
 
     # write reserved machine to hosts.yaml
     random_host_filename = "/tmp/hosts_{}.yaml".format(machine_serial)
     with open(random_host_filename, "w") as f:
         f.write(f"""
-tndo-n9k-2:
-  hostname: {reserved_machine["ip"]}
+{machine_hostname}:
+  hostname: {machine_mgmt_ip}
   platform: {platform}
   groups:
-    - n9k
+    - {model}
         """)
+
+    target_cfg_file = "cfg/{}.cfg".format(target_host.name)
+    with open(target_cfg_file, "r") as f:
+        target_config_lines = f.readlines()
+        # remove \n from each line
+        target_config_lines = [line.rstrip("\n") for line in target_config_lines]
+
+    # 1. generate sanitized config
+    sanitized_config = filter_config(
+        platform,
+        target_config_lines,
+        {
+            "hostname": machine_hostname,
+            "mgmt_ip": machine_mgmt_ip,
+            "netmask": machine_mgmt_netmask,
+            "default_gateway": machine_mgmt_gateway,
+        },
+    )
+
+    print("Sanitized config: ", "\n".join(sanitized_config))
 
     try:
         # 3. Create a dynamic Nornir inventory with the reserved machine
@@ -247,44 +261,6 @@ tndo-n9k-2:
             config_result += "Rollback log exec:\n"
             config_result += rollback_log_exec + "\n"
 
-        # 6. use netmiko to send config line by line to the device
-        # this is to ensure that each line is applied successfully
-        # for line in sanitized_config:
-        #     print("Sending command: {}".format(line))
-        #     output = netmiko_test_con.send_config_set([line])
-        #     if "Invalid" in output:
-        #         return Result(
-        #             host=task.host,
-        #             result=f"Invalid configuration detected: {output}\n at line: {line}",
-        #             changed=False,
-        #             failed=True,
-        #         )
-
-        # pre_execute_config = test_con.get_config()["running"]
-
-        # 7. test run the extra config commands
-        # netmiko_test_con = test_device.get_connection(
-        #     NETMIKO_CONNECTION_NAME, test_nr.config
-        # )
-        # for line in extra_commands:
-        #     print("Sending command: {}".format(line))
-        #     output = netmiko_test_con.send_config_set([line])
-        #     if "Invalid" in output:
-        #         return Result(
-        #             host=task.host,
-        #             result=f"Invalid configuration detected: {output}\n at line: {line}",
-        #             changed=False,
-        #             failed=True,
-        #         )
-        #     config_result += output + "\n"
-
-        # if platform == "iosxr":
-        #     netmiko_test_con.commit()
-
-        # after_execute_config = test_con.get_config()["running"]
-
-        # config_diff = diff_cfg(pre_execute_config, after_execute_config)
-
         return Result(
             host=task.host,
             result=config_result,
@@ -295,4 +271,5 @@ tndo-n9k-2:
     finally:
         # 8. Always release the machine after testing
         if machine_serial:
+            print("Releasing machine:", machine_serial)
             release_machine(machine_serial)
