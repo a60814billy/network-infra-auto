@@ -3,13 +3,13 @@ stages:
 
 build-docker-image:
   stage: build
-  image: docker:24.0.5
+  image: registry.hub.docker.com/library/docker:24.0.5-dind
   variables:
     DOCKER_HOST: "unix:///runner/services/docker/docker.sock"
     IMAGE_NAME: "a60814billy/infra-auto"
     IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
   services:
-    - docker:24.0.5-dind
+    - registry.hub.docker.com/library/docker:24.0.5-dind
   before_script:
     - apk add --no-cache git
     - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
