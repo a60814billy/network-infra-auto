@@ -12,8 +12,14 @@ from nornir_netmiko import CONNECTION_NAME as NETMIKO_CONNECTION_NAME
 from config_utils import filter_config
 
 # API Configuration
-API_BASE_URL = os.environ.get("TESTBED_INVENTORY_API", "http://10.192.4.172:8000")
+API_BASE_URL = os.environ.get("TESTBED_INVENTORY_API")
+API_TOKEN = os.environ.get("TESTBED_API_TOKEN")
 
+if API_BASE_URL is None or API_TOKEN is None:
+    raise ValueError("TESTBED_INVENTORY_API and TESTBED_API_TOKEN must be set in environment variables")
+
+testbed_api = requests.session()
+testbed_api.headers.update({"Authorization": f"Bearer {API_TOKEN}"})
 
 def ignore_config_diff_line(line: str) -> bool:
     """
@@ -31,7 +37,7 @@ def get_available_machines() -> List[Dict]:
     Get list of available machines from the API
     """
     try:
-        response = requests.get(f"{API_BASE_URL}/machines")
+        response = testbed_api.get(f"{API_BASE_URL}/machines")
         response.raise_for_status()
         data = response.json()
         return data.get("machines", [])
@@ -47,7 +53,7 @@ def reserve_machine(vendor: str, model: str, version: str) -> Optional[Dict]:
     """
     try:
         url = f"{API_BASE_URL}/reserve/{vendor}/{model}/{version}"
-        response = requests.post(url)
+        response = testbed_api.post(url)
         response.raise_for_status()
         machine = response.json()
         print(f"Reserved machine: {machine.get('serial')} ({machine.get('ip')})")
@@ -64,7 +70,7 @@ def release_machine(serial: str) -> bool:
     """
     try:
         url = f"{API_BASE_URL}/release/{serial}"
-        response = requests.post(url)
+        response = testbed_api.post(url)
         response.raise_for_status()
         result = response.json()
         print(f"Released machine: {serial}")
